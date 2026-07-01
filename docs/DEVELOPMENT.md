@@ -91,6 +91,38 @@ cp .env.example .env
 
 App en `http://localhost:8090`. Tras cambiar `.env`, reconstruir con `--build`.
 
+### Versión antigua en el navegador (homelab / NUC)
+
+Borrar datos del sitio en Chrome **no ayuda** si el servidor sigue sirviendo una imagen Docker vieja o un proxy cachea respuestas.
+
+1. **Redeploy forzado** (en el NUC, tras `git pull`):
+
+   ```bash
+   chmod +x scripts/redeploy-web.sh
+   ./scripts/redeploy-web.sh
+   ```
+
+   Equivale a `compose down` + `build --no-cache` + `up --force-recreate`. No uses solo `docker compose up -d` sin `--build`.
+
+2. **Comprobar qué sirve el contenedor** (no el navegador):
+
+   ```bash
+   curl -sI http://127.0.0.1:8090/main.dart.js | grep -i cache-control
+   # Debe incluir: no-store, no-cache, must-revalidate
+
+   docker compose exec rf-village-web ls -la /usr/share/nginx/html/main.dart.js
+   ```
+
+3. **Proxy inverso** (Nginx Proxy Manager, Traefik, Cloudflare): desactiva cache para esta app o purga cache tras cada deploy. Si accedes por `https://dominio` pero pruebas `http://IP:8090`, son orígenes distintos.
+
+4. **Desarrollo local** (sin Docker):
+
+   ```bash
+   flutter clean
+   flutter pub get
+   flutter build web --release --pwa-strategy=none
+   ```
+
 El [`Dockerfile`](../Dockerfile) instala Flutter **3.44.4** desde git (Dart ≥3.12.2). Las imágenes `ghcr.io/cirruslabs/flutter` suelen ir retrasadas respecto al SDK del proyecto.
 
 Detalle en [`README.md`](../README.md#producción-con-podmandocker).
