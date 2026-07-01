@@ -1,0 +1,15 @@
+---
+description: Use when refactoring Flutter/Dart code from the Linux CLI.
+globs:
+  - "**/*.dart"
+---
+Refactor with Linux CLI discipline:
+
+1. Inspect with `rg`, `fd`, `tree`, `git status`, and `git diff`.
+2. Make minimal, reversible edits.
+3. Prefer `dart fix --apply` for analyzer-supported migrations.
+4. Keep comments in English.
+5. Preserve feature-first architecture and avoid circular imports.
+6. Move hard-coded colors to `AppColors`.
+7. Move endpoints/tokens to config or `--dart-define`.
+8. Verify with `flutter format .`, `flutter analyze`, and `flutter test`.

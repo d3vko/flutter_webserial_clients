@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+Use this project as a Flutter WebSerial Gateway on Flutter 3.44.4 / Dart 3.12.2.
+
+Rules:
+- Web Serial code belongs only in web-specific data files with conditional imports.
+- UI calls serial permission prompts only from direct user gestures like button clicks.
+- Normalize every serial payload into domain models before HTTP/WebSocket forwarding.
+- Do not hard-code credentials, API tokens, or production URLs.
+- Use centralized colors in `lib/core/theme/app_colors.dart` and assets under `assets/`.
+- Use English comments in code.
+- After code edits run `flutter format .`, `flutter analyze`, and relevant tests.

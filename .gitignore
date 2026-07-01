@@ -1,0 +1,55 @@
+# Secrets & environment
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+credentials.json
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+
+# Dart doc
+**/doc/api/
+
+# Symbolication / obfuscation maps
+app.*.symbols
+app.*.map.json
+
+# Android build outputs
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# IDE / OS
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.class
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Logs
+*.log
+
+# Asset backups (do not version large originals)
+**/*_original.png
+
+# Misc editor history
+.history
+.buildlog/

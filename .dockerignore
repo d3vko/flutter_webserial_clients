@@ -1,0 +1,44 @@
+.git
+.gitignore
+
+# Secrets & environment
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+credentials.json
+
+# IDE / OS
+.idea
+.vscode
+*.iml
+.DS_Store
+Thumbs.db
+
+# Flutter build artifacts
+.dart_tool
+.pub-cache
+.pub
+build
+coverage
+
+# Platform folders not needed for web Docker image
+android
+ios
+linux
+macos
+windows
+
+# Local Docker overrides
+docker-compose.override.yml
+
+# Logs
+*.log
+
+# Asset backups
+**/*_original.png
+
+# Keep docs/, scripts/, .cursor/rules, .agents in build context

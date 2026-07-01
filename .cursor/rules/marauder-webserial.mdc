@@ -1,0 +1,13 @@
+---
+description: Rules for ESP32 Marauder / Badge Pwnterrey feature module
+globs: lib/features/marauder/**
+alwaysApply: false
+---
+
+# Marauder WebSerial module
+
+- Serial writes go through `SerialClient.write()` / `sendCommand()` only from user actions.
+- Port wardrive parsing logic from Vue (`wardriveParser.js`) — do not mix with LilyGO `serial_parser.dart`.
+- Use `device_source=pwnterrey marauder` for platform upload.
+- Document protocol changes in `docs/marauder_ui_pro_logic.md`.
+- After edits: `dart format .`, `dart analyze`, `flutter test`.

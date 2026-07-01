@@ -1,0 +1,14 @@
+services:
+  rf-village-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        WARDRIVE_LOGIN_URL: ${WARDRIVE_LOGIN_URL:-}
+        WARDRIVE_REGISTER_URL: ${WARDRIVE_REGISTER_URL:-}
+        WARDRIVE_RESET_URL: ${WARDRIVE_RESET_URL:-}
+        WARDRIVE_UPLOAD_URL: ${WARDRIVE_UPLOAD_URL:-}
+        WARDRIVE_TOKEN_REFRESH_URL: ${WARDRIVE_TOKEN_REFRESH_URL:-}
+    ports:
+      - "${HOST_PORT:-8090}:8090"
+    restart: unless-stopped

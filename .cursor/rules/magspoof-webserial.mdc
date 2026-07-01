@@ -1,0 +1,13 @@
+---
+description: Rules for MagSpoof V5 feature module
+globs: lib/features/magspoof/**
+alwaysApply: false
+---
+
+# MagSpoof WebSerial module
+
+- Serial writes go through `SerialClient.sendCommand()` only from user actions.
+- Port track parsing from Vue (`trackParser.js`) — do not mix with LilyGO or Marauder parsers.
+- MagSpoof has no platform upload or `device_source`.
+- Document protocol changes in `docs/magspoof_v5_logic.md`.
+- After edits: `dart format .`, `dart analyze`, `flutter test`.
