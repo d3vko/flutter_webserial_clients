@@ -16,14 +16,12 @@ class RfVillageLogo extends StatelessWidget {
   static const _iconAssetPath = BrandingConfig.appBarIconAsset;
 
   double _heroHeight(BuildContext context) {
-    final isNarrow =
-        MediaQuery.sizeOf(context).width < AppBreakpoints.narrow;
+    final isNarrow = MediaQuery.sizeOf(context).width < AppBreakpoints.narrow;
     return isNarrow ? 104 : 132;
   }
 
   double _appBarHeight(BuildContext context) {
-    final isNarrow =
-        MediaQuery.sizeOf(context).width < AppBreakpoints.narrow;
+    final isNarrow = MediaQuery.sizeOf(context).width < AppBreakpoints.narrow;
     return isNarrow ? 36 : 40;
   }
 

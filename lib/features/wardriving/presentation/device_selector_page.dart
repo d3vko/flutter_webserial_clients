@@ -45,17 +45,20 @@ class DeviceSelectorPage extends StatelessWidget {
                         const SizedBox(height: 24),
                         Text(
                           'Hosted by:',
-                          style: (isNarrow
-                                  ? Theme.of(context).textTheme.titleLarge
-                                  : Theme.of(context).textTheme.headlineSmall)
-                              ?.copyWith(
-                                color: AppColors.villageGreen,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              (isNarrow
+                                      ? Theme.of(context).textTheme.titleLarge
+                                      : Theme.of(
+                                          context,
+                                        ).textTheme.headlineSmall)
+                                  ?.copyWith(
+                                    color: AppColors.villageGreen,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                           textAlign: TextAlign.center,
                         ),
                         const RfVillageLogo(size: RfVillageLogoSize.hero),
-                        
+
                         const SizedBox(height: 12),
                         Text(
                           'Welcome to web serial clients',
@@ -68,7 +71,9 @@ class DeviceSelectorPage extends StatelessWidget {
                               ),
                         ),
                         const SizedBox(height: 32),
-                        _SectionHeader(title: 'LilyGO TSIM WiFi/BLE/LTE Wardriving'),
+                        _SectionHeader(
+                          title: 'LilyGO TSIM WiFi/BLE/LTE Wardriving',
+                        ),
                         for (final profile in DeviceProfile.forKind(
                           AppKind.wardriving,
                         )) ...[

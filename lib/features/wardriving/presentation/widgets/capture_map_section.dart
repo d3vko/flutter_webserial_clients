@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
+
+import '../../../../core/config/map_config.dart';
 import '../../../../core/layout/app_breakpoints.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/rf_village_gradient.dart';
@@ -26,8 +28,9 @@ class CaptureMapSection extends StatefulWidget {
 }
 
 class _CaptureMapSectionState extends State<CaptureMapSection> {
-  final _mapController = MapController();
-  int _pointCount = 0;
+  MapLibreMapController? _mapController;
+  var _styleLoaded = false;
+  var _pointsSignature = '';
 
   List<CaptureMapPoint> get _points => captureMapPoints(
     lteRows: widget.lteRows,
@@ -35,30 +38,89 @@ class _CaptureMapSectionState extends State<CaptureMapSection> {
     bleRows: widget.bleRows,
   );
 
-  @override
-  void didUpdateWidget(covariant CaptureMapSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final count = _points.length;
-    if (count != _pointCount) {
-      _pointCount = count;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _fitToPoints());
-    }
+  String get _currentPointsSignature {
+    final points = _points;
+    return points
+        .map((p) => '${p.latitude},${p.longitude},${p.scanType.name}')
+        .join('|');
   }
 
   @override
   void initState() {
     super.initState();
-    _pointCount = _points.length;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _fitToPoints());
+    _pointsSignature = _currentPointsSignature;
   }
 
-  void _fitToPoints() {
+  @override
+  void didUpdateWidget(covariant CaptureMapSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final signature = _currentPointsSignature;
+    if (signature == _pointsSignature) return;
+    _pointsSignature = signature;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshMap());
+  }
+
+  void _onMapCreated(MapLibreMapController controller) {
+    _mapController = controller;
+    controller.onCircleTapped.add((circle) {
+      final label = circle.data?['label'] as String?;
+      if (label == null || !mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(label), duration: const Duration(seconds: 2)),
+      );
+    });
+  }
+
+  void _onStyleLoaded() {
+    _styleLoaded = true;
+    unawaited(_refreshMap());
+  }
+
+  Future<void> _refreshMap() async {
+    await _syncCircles();
+    await _fitToPoints();
+  }
+
+  Future<void> _syncCircles() async {
+    final controller = _mapController;
+    if (controller == null || !_styleLoaded) return;
+
+    await controller.clearCircles();
     final points = _points;
-    if (points.isEmpty || !mounted) return;
+    if (points.isEmpty) return;
+
+    await controller.addCircles(
+      [
+        for (final point in points)
+          CircleOptions(
+            geometry: LatLng(point.latitude, point.longitude),
+            circleRadius: 8,
+            circleColor: _colorToHex(
+              ScanTypeTheme.forType(point.scanType).accent,
+            ),
+            circleStrokeWidth: 2,
+            circleStrokeColor: '#000000',
+            circleOpacity: 0.9,
+          ),
+      ],
+      [
+        for (final point in points) {'label': point.label},
+      ],
+    );
+  }
+
+  Future<void> _fitToPoints() async {
+    final controller = _mapController;
+    if (controller == null || !_styleLoaded || !mounted) return;
+
+    final points = _points;
+    if (points.isEmpty) return;
 
     if (points.length == 1) {
       final point = points.first;
-      _mapController.move(LatLng(point.latitude, point.longitude), 15);
+      await controller.animateCamera(
+        CameraUpdate.newLatLngZoom(LatLng(point.latitude, point.longitude), 15),
+      );
       return;
     }
 
@@ -74,12 +136,23 @@ class _CaptureMapSectionState extends State<CaptureMapSection> {
       maxLng = maxLng > point.longitude ? maxLng : point.longitude;
     }
 
-    _mapController.fitCamera(
-      CameraFit.bounds(
-        bounds: LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng)),
-        padding: const EdgeInsets.all(48),
+    await controller.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(minLat, minLng),
+          northeast: LatLng(maxLat, maxLng),
+        ),
+        left: 48,
+        top: 48,
+        right: 48,
+        bottom: 48,
       ),
     );
+  }
+
+  String _colorToHex(Color color) {
+    final value = color.toARGB32();
+    return '#${(value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
   }
 
   @override
@@ -137,61 +210,26 @@ class _CaptureMapSectionState extends State<CaptureMapSection> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: SizedBox(
-                    height: MediaQuery.sizeOf(context).width <
-                            AppBreakpoints.medium
+                    height:
+                        MediaQuery.sizeOf(context).width < AppBreakpoints.medium
                         ? 240
                         : 320,
                     child: Stack(
                       children: [
-                        FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            initialCenter: const LatLng(
+                        MapLibreMap(
+                          styleString: MapConfig.styleUrl,
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(
                               defaultMapLatitude,
                               defaultMapLongitude,
                             ),
-                            initialZoom: defaultMapZoom,
-                            interactionOptions: const InteractionOptions(
-                              flags: InteractiveFlag.all,
-                            ),
+                            zoom: defaultMapZoom,
                           ),
-                          children: [
-                            TileLayer(
-                              urlTemplate:
-                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName:
-                                  'dev.rfvillage.lilygo_wardriving_web',
-                            ),
-                            MarkerLayer(
-                              markers: [
-                                for (final point in points)
-                                  Marker(
-                                    point: LatLng(
-                                      point.latitude,
-                                      point.longitude,
-                                    ),
-                                    width: 36,
-                                    height: 36,
-                                    child: Tooltip(
-                                      message: point.label,
-                                      child: Icon(
-                                        Icons.location_on,
-                                        color: ScanTypeTheme.forType(
-                                          point.scanType,
-                                        ).accent,
-                                        size: 32,
-                                        shadows: const [
-                                          Shadow(
-                                            color: Colors.black54,
-                                            blurRadius: 4,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
+                          onMapCreated: _onMapCreated,
+                          onStyleLoadedCallback: _onStyleLoaded,
+                          logoEnabled: false,
+                          attributionButtonPosition:
+                              AttributionButtonPosition.bottomLeft,
                         ),
                         if (points.isEmpty)
                           Container(
@@ -212,7 +250,7 @@ class _CaptureMapSectionState extends State<CaptureMapSection> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'OpenStreetMap tiles · pan/zoom to explore captures',
+                  '${MapConfig.attribution} · pan/zoom to explore captures',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.villageText.withValues(alpha: 0.6),
                   ),
