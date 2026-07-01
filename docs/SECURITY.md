@@ -67,6 +67,8 @@ Production [`docker/nginx.conf`](../docker/nginx.conf) sets:
 
 **CanvasKit CDN:** The default `flutter build web` output loads CanvasKit from `https://www.gstatic.com` at runtime. The CSP therefore allows that origin in `script-src` (for `canvaskit.js`) and `connect-src` (for `canvaskit.wasm` and related assets). Clients must reach `www.gstatic.com`; if the CDN is blocked (corporate firewall, offline use), the app will not render.
 
+**MapLibre / map tiles:** Wardriving maps load MapLibre GL JS from `https://unpkg.com` (`web/index.html`) and fetch styles/tiles from HTTPS hosts such as `americanamap.org`, `tiles.openstreetmap.us`, or `tiles.openfreemap.org`. The CSP allows those origins. If the map works on `http://IP:8090` but fails behind a reverse proxy, check: (1) proxy cache serving an old build that still used `tile.openstreetmap.org`, (2) a stricter CSP added by the proxy, (3) subpath deployment without matching `--base-href`.
+
 **Stricter CSP alternative:** Bundle CanvasKit in the image instead of using the CDN by adding `--no-web-resources-cdn` to the `flutter build web` command in the [`Dockerfile`](../Dockerfile). Then you can remove `https://www.gstatic.com` from the CSP and serve everything from `'self'` only (at the cost of a larger image).
 
 ## Docker
