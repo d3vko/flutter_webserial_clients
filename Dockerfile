@@ -50,6 +50,7 @@ COPY assets/ assets/
 RUN flutter pub get \
     && flutter build web --release \
     --no-wasm-dry-run \
+    --pwa-strategy=none \
     --dart-define=WARDRIVE_LOGIN_URL=${WARDRIVE_LOGIN_URL} \
     --dart-define=WARDRIVE_REGISTER_URL=${WARDRIVE_REGISTER_URL} \
     --dart-define=WARDRIVE_RESET_URL=${WARDRIVE_RESET_URL} \
