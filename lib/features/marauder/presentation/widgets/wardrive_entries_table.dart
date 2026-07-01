@@ -52,33 +52,29 @@ class WardriveEntriesTable extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Scrollbar(
-                      thumbVisibility: true,
+                    child: SingleChildScrollView(
                       child: SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            headingRowHeight: 36,
-                            dataRowMinHeight: 32,
-                            dataRowMaxHeight: 40,
-                            columnSpacing: 16,
-                            columns: const [
-                              DataColumn(label: Text('#')),
-                              DataColumn(label: Text('MAC')),
-                              DataColumn(label: Text('SSID / Name')),
-                              DataColumn(label: Text('Security')),
-                              DataColumn(label: Text('Ch')),
-                              DataColumn(label: Text('RSSI')),
-                              DataColumn(label: Text('Lat')),
-                              DataColumn(label: Text('Lon')),
-                              DataColumn(label: Text('Type')),
-                            ],
-                            rows: [
-                              for (var i = 0; i < entries.length; i++)
-                                _row(i + 1, entries[i]),
-                            ],
-                          ),
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          headingRowHeight: 36,
+                          dataRowMinHeight: 32,
+                          dataRowMaxHeight: 40,
+                          columnSpacing: 16,
+                          columns: const [
+                            DataColumn(label: Text('#')),
+                            DataColumn(label: Text('MAC')),
+                            DataColumn(label: Text('SSID / Name')),
+                            DataColumn(label: Text('Security')),
+                            DataColumn(label: Text('Ch')),
+                            DataColumn(label: Text('RSSI')),
+                            DataColumn(label: Text('Lat')),
+                            DataColumn(label: Text('Lon')),
+                            DataColumn(label: Text('Type')),
+                          ],
+                          rows: [
+                            for (var i = 0; i < entries.length; i++)
+                              _row(i + 1, entries[i]),
+                          ],
                         ),
                       ),
                     ),

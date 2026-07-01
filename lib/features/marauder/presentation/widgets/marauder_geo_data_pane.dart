@@ -195,7 +195,6 @@ class _GpsLogPane extends StatelessWidget {
                 ),
               )
             : Scrollbar(
-                thumbVisibility: true,
                 child: ListView.builder(
                   itemCount: logLines.length,
                   itemBuilder: (context, index) => Text(

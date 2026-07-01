@@ -160,17 +160,20 @@ class _CaptureMapWidgetState extends State<CaptureMapWidget> {
             : 360.0);
 
     final mapChild = Stack(
+      fit: widget.expand ? StackFit.expand : StackFit.loose,
       children: [
-        MapLibreMap(
-          styleString: MapConfig.styleUrl,
-          initialCameraPosition: CameraPosition(
-            target: LatLng(defaultMapLatitude, defaultMapLongitude),
-            zoom: defaultMapZoom,
+        Positioned.fill(
+          child: MapLibreMap(
+            styleString: MapConfig.styleUrl,
+            initialCameraPosition: CameraPosition(
+              target: LatLng(defaultMapLatitude, defaultMapLongitude),
+              zoom: defaultMapZoom,
+            ),
+            onMapCreated: _onMapCreated,
+            onStyleLoadedCallback: _onStyleLoaded,
+            logoEnabled: false,
+            attributionButtonPosition: AttributionButtonPosition.bottomLeft,
           ),
-          onMapCreated: _onMapCreated,
-          onStyleLoadedCallback: _onStyleLoaded,
-          logoEnabled: false,
-          attributionButtonPosition: AttributionButtonPosition.bottomLeft,
         ),
         if (points.isEmpty)
           Container(
@@ -193,7 +196,7 @@ class _CaptureMapWidgetState extends State<CaptureMapWidget> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: widget.expand
-          ? SizedBox.expand(child: mapChild)
+          ? mapChild
           : SizedBox(height: mapHeight, child: mapChild),
     );
   }

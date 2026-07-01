@@ -42,31 +42,28 @@ class MarauderGeoCommandRail extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Scrollbar(
-          thumbVisibility: true,
-          child: SingleChildScrollView(
-            child: switch (view) {
-              MarauderView.gps => GpsCommandRail(
-                capabilities: capabilities,
-                isConnected: isConnected,
-                onCommand: onCommand,
-              ),
-              MarauderView.wardrive => WardriveCommandRail(
-                capabilities: capabilities,
-                isConnected: isConnected,
-                onCommand: onCommand,
-                entryCount: wardriveEntryCount,
-                uploadPhase: uploadPhase,
-                uploadError: uploadError,
-                isUploading: isUploading,
-                isLoggedIn: isLoggedIn,
-                onDownload: onDownload,
-                onUpload: onUpload,
-                onClear: onClear,
-              ),
-              _ => const SizedBox.shrink(),
-            },
-          ),
+        child: SingleChildScrollView(
+          child: switch (view) {
+            MarauderView.gps => GpsCommandRail(
+              capabilities: capabilities,
+              isConnected: isConnected,
+              onCommand: onCommand,
+            ),
+            MarauderView.wardrive => WardriveCommandRail(
+              capabilities: capabilities,
+              isConnected: isConnected,
+              onCommand: onCommand,
+              entryCount: wardriveEntryCount,
+              uploadPhase: uploadPhase,
+              uploadError: uploadError,
+              isUploading: isUploading,
+              isLoggedIn: isLoggedIn,
+              onDownload: onDownload,
+              onUpload: onUpload,
+              onClear: onClear,
+            ),
+            _ => const SizedBox.shrink(),
+          },
         ),
       ),
     );

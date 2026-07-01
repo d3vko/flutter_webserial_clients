@@ -221,31 +221,28 @@ class _MarauderPageState extends ConsumerState<MarauderPage> {
                             ],
                           );
                         }
-                        return SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              _Sidebar(
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SingleChildScrollView(
+                              child: _Sidebar(
                                 profile: widget.profile,
                                 state: state,
                                 controller: _controller,
                               ),
-                              const SizedBox(height: 16),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  minHeight: 400,
-                                ),
-                                child: _MainPanel(
-                                  state: state,
-                                  controller: _controller,
-                                  terminalScrollController:
-                                      _terminalScrollController,
-                                  profile: widget.profile,
-                                  ref: ref,
-                                ),
+                            ),
+                            const SizedBox(height: 16),
+                            Expanded(
+                              child: _MainPanel(
+                                state: state,
+                                controller: _controller,
+                                terminalScrollController:
+                                    _terminalScrollController,
+                                profile: widget.profile,
+                                ref: ref,
                               ),
-                              const SiteCreditFooter(),
-                            ],
-                          ),
+                            ),
+                          ],
                         );
                       },
                     ),

@@ -116,10 +116,6 @@ class MarauderMapSection extends StatelessWidget {
       ),
     );
 
-    if (expandMap) {
-      return SizedBox.expand(child: content);
-    }
-
     return content;
   }
 }
