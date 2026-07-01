@@ -25,6 +25,11 @@ final appRouter = GoRouter(
           const MarauderPage(profile: DeviceProfile.pwnterreyMarauder),
     ),
     GoRoute(
+      path: DeviceProfile.oficialMarauder.routePath,
+      builder: (context, state) =>
+          const MarauderPage(profile: DeviceProfile.oficialMarauder),
+    ),
+    GoRoute(
       path: DeviceProfile.magspoofV5.routePath,
       builder: (context, state) =>
           const MagspoofPage(profile: DeviceProfile.magspoofV5),

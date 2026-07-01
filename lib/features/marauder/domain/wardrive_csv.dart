@@ -1,8 +1,6 @@
 import 'marauder_models.dart';
 import 'wardrive_schema.dart';
 
-const baseAppRelease = 'PwnterreyESP32Marauder';
-
 List<String> _extendedKeys(List<WardriveEntry> entries) {
   const candidates = ['last_seen', 'frequency'];
   return candidates
@@ -15,7 +13,7 @@ List<String> _extendedKeys(List<WardriveEntry> entries) {
       .toList();
 }
 
-String _metaLine(WardriveDialect? dialect) {
+String _metaLine(WardriveDialect? dialect, String baseAppRelease) {
   final release = (dialect?.appRelease.isNotEmpty ?? false)
       ? dialect!.appRelease
       : baseAppRelease;
@@ -67,10 +65,11 @@ String _entryRow(WardriveEntry entry, List<String> extKeys) {
 String buildWardriveCsvString(
   List<WardriveEntry> entries, [
   WardriveDialect? dialect,
+  String baseAppRelease = 'PwnterreyESP32Marauder',
 ]) {
   final extKeys = _extendedKeys(entries);
   final lines = <String>[
-    _metaLine(dialect),
+    _metaLine(dialect, baseAppRelease),
     _columnHeader(extKeys),
     ...entries.map((entry) => _entryRow(entry, extKeys)),
   ];

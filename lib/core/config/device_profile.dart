@@ -12,6 +12,63 @@ class UsbSerialFilter {
 }
 
 @immutable
+class MarauderCapabilities {
+  const MarauderCapabilities({
+    required this.brandingAsset,
+    required this.baseAppRelease,
+    required this.supportsBleSniff,
+    required this.supportsBtWardrive,
+    required this.supportsNfc,
+    required this.wifiWardriveCommand,
+    required this.gpsTrackerStartCommand,
+    this.btWardriveCommand,
+    this.wifiStationWardriveCommand,
+    this.btWardriveContinuousCommand,
+    this.gpsTrackerStopCommand,
+    this.showEsp32C5Warning = false,
+  });
+
+  final String brandingAsset;
+  final String baseAppRelease;
+  final bool supportsBleSniff;
+  final bool supportsBtWardrive;
+  final bool supportsNfc;
+  final String wifiWardriveCommand;
+  final String? btWardriveCommand;
+  final String? wifiStationWardriveCommand;
+  final String? btWardriveContinuousCommand;
+  final String gpsTrackerStartCommand;
+  final String? gpsTrackerStopCommand;
+  final bool showEsp32C5Warning;
+
+  static const pwnterrey = MarauderCapabilities(
+    brandingAsset: 'assets/branding/pwnterrey.png',
+    baseAppRelease: 'PwnterreyESP32Marauder',
+    supportsBleSniff: false,
+    supportsBtWardrive: false,
+    supportsNfc: true,
+    wifiWardriveCommand: 'wardrive -serial',
+    gpsTrackerStartCommand: 'gps -t',
+    showEsp32C5Warning: true,
+  );
+
+  /// Official [ESP32Marauder](https://github.com/justcallmekoko/ESP32Marauder) CLI.
+  static const oficial = MarauderCapabilities(
+    brandingAsset: 'assets/branding/esp32-marauder.png',
+    baseAppRelease: 'ESP32Marauder',
+    supportsBleSniff: true,
+    supportsBtWardrive: true,
+    supportsNfc: false,
+    wifiWardriveCommand: 'wardrive -serial',
+    wifiStationWardriveCommand: 'wardrive -serial -s',
+    btWardriveCommand: 'btwardrive -serial',
+    btWardriveContinuousCommand: 'btwardrive -serial -c',
+    gpsTrackerStartCommand: 'gpstracker -c start',
+    gpsTrackerStopCommand: 'gpstracker -c stop',
+  );
+}
+
+@immutable
 class DeviceProfile {
   const DeviceProfile({
     required this.id,
@@ -25,6 +82,7 @@ class DeviceProfile {
     this.deviceSource,
     required this.supportsAdvancedSerial,
     required this.defaultBaudRate,
+    this.marauderCapabilities,
   });
 
   final String id;
@@ -38,6 +96,7 @@ class DeviceProfile {
   final String? deviceSource;
   final bool supportsAdvancedSerial;
   final int defaultBaudRate;
+  final MarauderCapabilities? marauderCapabilities;
 
   /// Upload `device_source` for TSIM WiFi/BLE CSV (shared by TSIM7000G and TSIM7600H-G).
   static const rfCustomFirmwareWifi = 'rf custom firmware wifi';
@@ -83,6 +142,22 @@ class DeviceProfile {
     deviceSourceLte: '',
     supportsAdvancedSerial: false,
     defaultBaudRate: 115200,
+    marauderCapabilities: MarauderCapabilities.pwnterrey,
+  );
+
+  static const oficialMarauder = DeviceProfile(
+    id: 'oficial-marauder',
+    routePath: '/oficial-marauder',
+    title: 'Oficial Firmware',
+    subtitle: 'ESP32 Marauder official firmware (justcallmekoko)',
+    themeStorageKey: 'oficial-marauder-color-mode',
+    appKind: AppKind.marauder,
+    deviceSource: 'pwnterrey marauder',
+    deviceSourceWifiBle: '',
+    deviceSourceLte: '',
+    supportsAdvancedSerial: false,
+    defaultBaudRate: 115200,
+    marauderCapabilities: MarauderCapabilities.oficial,
   );
 
   static const magspoofV5 = DeviceProfile(
@@ -98,7 +173,13 @@ class DeviceProfile {
     defaultBaudRate: 9600,
   );
 
-  static const all = [tsim7000g, tsim7600hg, pwnterreyMarauder, magspoofV5];
+  static const all = [
+    tsim7000g,
+    tsim7600hg,
+    pwnterreyMarauder,
+    oficialMarauder,
+    magspoofV5,
+  ];
 
   static List<DeviceProfile> forKind(AppKind kind) =>
       all.where((profile) => profile.appKind == kind).toList();

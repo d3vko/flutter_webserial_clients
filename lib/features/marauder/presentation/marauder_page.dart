@@ -14,13 +14,13 @@ import 'marauder_controller.dart';
 import 'marauder_state.dart';
 import 'widgets/ble_device_table.dart';
 import 'widgets/command_builder.dart';
-import 'widgets/gps_panel.dart';
+import 'widgets/marauder_geo_command_rail.dart';
+import 'widgets/marauder_geo_data_pane.dart';
 import 'widgets/nfc_panel.dart';
 import 'widgets/storage_panel.dart';
 import 'widgets/system_utilities_panel.dart';
 import 'widgets/terminal_panel.dart';
 import 'widgets/view_tabs.dart';
-import 'widgets/wardrive_panel.dart';
 import 'widgets/wifi_ap_table.dart';
 import 'widgets/workflow_dialog.dart';
 
@@ -63,6 +63,10 @@ class _MarauderPageState extends ConsumerState<MarauderPage> {
     });
 
     final theme = state.isDarkTheme ? AppTheme.dark() : AppTheme.light();
+    final isCompact = MediaQuery.sizeOf(context).width < AppBreakpoints.compact;
+    final capabilities =
+        widget.profile.marauderCapabilities ?? MarauderCapabilities.pwnterrey;
+    final brandingAsset = capabilities.brandingAsset;
 
     return Theme(
       data: theme.copyWith(
@@ -76,7 +80,7 @@ class _MarauderPageState extends ConsumerState<MarauderPage> {
           title: Row(
             children: [
               Image.asset(
-                'assets/branding/pwnterrey.png',
+                brandingAsset,
                 height: 28,
                 filterQuality: FilterQuality.medium,
               ),
@@ -94,21 +98,83 @@ class _MarauderPageState extends ConsumerState<MarauderPage> {
             onPressed: () => context.go('/'),
           ),
           actions: [
-            TextButton(
-              onPressed: _controller.toggleTheme,
-              child: Text(state.isDarkTheme ? 'White mode' : 'Black mode'),
-            ),
-            if (state.isLoggedIn)
-              TextButton(
-                onPressed: () async => _controller.logout(),
-                child: Text('Logout (${state.authUsername})'),
+            if (isCompact)
+              PopupMenuButton<String>(
+                onSelected: (value) async {
+                  switch (value) {
+                    case 'theme':
+                      _controller.toggleTheme();
+                    case 'login':
+                      if (state.isLoggedIn) {
+                        await _controller.logout();
+                      } else {
+                        if (!context.mounted) return;
+                        await showMarauderAuthModal(
+                          context,
+                          ref,
+                          widget.profile,
+                        );
+                      }
+                    case 'register':
+                      if (!state.isLoggedIn) {
+                        if (!context.mounted) return;
+                        await showMarauderAuthModal(
+                          context,
+                          ref,
+                          widget.profile,
+                          view: MarauderAuthView.register,
+                        );
+                      }
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'theme',
+                    child: Text(
+                      state.isDarkTheme ? 'White mode' : 'Black mode',
+                    ),
+                  ),
+                  if (state.isLoggedIn)
+                    PopupMenuItem(
+                      value: 'login',
+                      child: Text('Logout (${state.authUsername})'),
+                    )
+                  else ...[
+                    const PopupMenuItem(value: 'login', child: Text('Log in')),
+                    const PopupMenuItem(
+                      value: 'register',
+                      child: Text('Register'),
+                    ),
+                  ],
+                ],
               )
-            else
+            else ...[
               TextButton(
-                onPressed: () =>
-                    showMarauderAuthModal(context, ref, widget.profile),
-                child: const Text('Log in'),
+                onPressed: _controller.toggleTheme,
+                child: Text(state.isDarkTheme ? 'White mode' : 'Black mode'),
               ),
+              if (state.isLoggedIn)
+                TextButton(
+                  onPressed: () async => _controller.logout(),
+                  child: Text('Logout (${state.authUsername})'),
+                )
+              else ...[
+                TextButton(
+                  onPressed: () =>
+                      showMarauderAuthModal(context, ref, widget.profile),
+                  child: const Text('Log in'),
+                ),
+                TextButton(
+                  onPressed: () => showMarauderAuthModal(
+                    context,
+                    ref,
+                    widget.profile,
+                    view: MarauderAuthView.register,
+                  ),
+                  child: const Text('Register'),
+                ),
+              ],
+            ],
           ],
         ),
         body: Stack(
@@ -136,6 +202,7 @@ class _MarauderPageState extends ConsumerState<MarauderPage> {
                               SizedBox(
                                 width: 320,
                                 child: _Sidebar(
+                                  profile: widget.profile,
                                   state: state,
                                   controller: _controller,
                                 ),
@@ -157,7 +224,11 @@ class _MarauderPageState extends ConsumerState<MarauderPage> {
                         return SingleChildScrollView(
                           child: Column(
                             children: [
-                              _Sidebar(state: state, controller: _controller),
+                              _Sidebar(
+                                profile: widget.profile,
+                                state: state,
+                                controller: _controller,
+                              ),
                               const SizedBox(height: 16),
                               ConstrainedBox(
                                 constraints: const BoxConstraints(
@@ -193,10 +264,18 @@ class _MarauderPageState extends ConsumerState<MarauderPage> {
 }
 
 class _Sidebar extends StatelessWidget {
-  const _Sidebar({required this.state, required this.controller});
+  const _Sidebar({
+    required this.profile,
+    required this.state,
+    required this.controller,
+  });
 
+  final DeviceProfile profile;
   final MarauderState state;
   final MarauderController controller;
+
+  MarauderCapabilities get _capabilities =>
+      profile.marauderCapabilities ?? MarauderCapabilities.pwnterrey;
 
   @override
   Widget build(BuildContext context) {
@@ -206,6 +285,7 @@ class _Sidebar extends StatelessWidget {
         children: [
           CommandBuilder(
             onCommand: controller.sendCommand,
+            capabilities: _capabilities,
             initialMode: state.currentView == MarauderView.bt
                 ? CommandBuilderMode.bluetooth
                 : CommandBuilderMode.wifi,
@@ -272,12 +352,19 @@ class _MainPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final capabilities =
+        profile.marauderCapabilities ?? MarauderCapabilities.pwnterrey;
+    final isGeoView =
+        state.currentView == MarauderView.gps ||
+        state.currentView == MarauderView.wardrive;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         MarauderViewTabs(
           currentView: state.currentView,
           onChanged: controller.setView,
+          capabilities: capabilities,
         ),
         if (state.activeCommand != null) ...[
           const SizedBox(height: 8),
@@ -287,31 +374,114 @@ class _MainPanel extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
-        Expanded(
-          flex: 2,
-          child: TerminalPanel(
-            lines: state.terminalLines,
-            scrollController: terminalScrollController,
+        if (isGeoView) ...[
+          Expanded(
+            flex: 2,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: TerminalPanel(
+                    lines: state.terminalLines,
+                    scrollController: terminalScrollController,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 280,
+                  child: MarauderGeoCommandRail(
+                    view: state.currentView,
+                    capabilities: capabilities,
+                    isConnected: state.isConnected,
+                    onCommand: controller.sendCommand,
+                    wardriveEntryCount: state.wardriveEntries.length,
+                    uploadPhase: state.uploadPhase,
+                    uploadError: state.uploadError,
+                    isUploading: state.isUploading,
+                    isLoggedIn: state.isLoggedIn,
+                    onDownload: controller.downloadWardriveCsv,
+                    onUpload: () => _uploadWardrive(context),
+                    onClear: controller.clearWardriveEntries,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          flex: 3,
-          child: Card(
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: _ViewContent(
-                state: state,
-                controller: controller,
-                profile: profile,
-                ref: ref,
+          const SizedBox(height: 12),
+          Expanded(
+            flex: 3,
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: _GeoDataPane(state: state, capabilities: capabilities),
               ),
             ),
           ),
-        ),
+        ] else ...[
+          Expanded(
+            flex: 2,
+            child: TerminalPanel(
+              lines: state.terminalLines,
+              scrollController: terminalScrollController,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            flex: 3,
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: _ViewContent(
+                  state: state,
+                  controller: controller,
+                  profile: profile,
+                  ref: ref,
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
+  }
+
+  Future<void> _uploadWardrive(BuildContext context) async {
+    if (!state.isLoggedIn) {
+      controller.requestUploadWardrive();
+      final loggedIn = await showMarauderAuthModal(context, ref, profile);
+      if (loggedIn == true && controller.consumePendingUploadWardrive()) {
+        await controller.uploadWardrive();
+      }
+      return;
+    }
+    await controller.uploadWardrive();
+  }
+}
+
+class _GeoDataPane extends StatelessWidget {
+  const _GeoDataPane({required this.state, required this.capabilities});
+
+  final MarauderState state;
+  final MarauderCapabilities capabilities;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (state.currentView) {
+      MarauderView.wardrive => WardriveDataPane(
+        entries: state.wardriveEntries,
+        gpsTelemetry: state.gpsTelemetry,
+        dialect: state.wardriveDialect,
+      ),
+      MarauderView.gps => GpsDataPane(
+        telemetry: state.gpsTelemetry,
+        logLines: state.gpsLogLines,
+        wardriveEntries: state.wardriveEntries,
+      ),
+      _ => const SizedBox.shrink(),
+    };
   }
 }
 
@@ -330,6 +500,9 @@ class _ViewContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final capabilities =
+        profile.marauderCapabilities ?? MarauderCapabilities.pwnterrey;
+
     return switch (state.currentView) {
       MarauderView.ap => WifiApTable(
         accessPoints: state.accessPoints,
@@ -342,32 +515,10 @@ class _ViewContent extends StatelessWidget {
         isConnected: state.isConnected,
         onRefresh: controller.refreshBluetoothDevices,
         onClear: controller.clearBluetoothDevices,
+        showEsp32C5Warning: capabilities.showEsp32C5Warning,
       ),
-      MarauderView.gps => SingleChildScrollView(
-        child: GpsPanel(
-          telemetry: state.gpsTelemetry,
-          logLines: state.gpsLogLines,
-          onCommand: controller.sendCommand,
-        ),
-      ),
-      MarauderView.wardrive => Align(
-        alignment: Alignment.topLeft,
-        child: WardrivePanel(
-          entryCount: state.wardriveEntries.length,
-          uploadPhase: state.uploadPhase,
-          uploadError: state.uploadError,
-          isUploading: state.isUploading,
-          isLoggedIn: state.isLoggedIn,
-          onDownload: controller.downloadWardriveCsv,
-          onUpload: () async {
-            if (!state.isLoggedIn) {
-              await showMarauderAuthModal(context, ref, profile);
-            }
-            await controller.uploadWardrive();
-          },
-          onClear: controller.clearWardriveEntries,
-        ),
-      ),
+      MarauderView.gps => const SizedBox.shrink(),
+      MarauderView.wardrive => const SizedBox.shrink(),
       MarauderView.storage => StoragePanel(
         files: state.spiffsFiles,
         storageInfo: state.spiffsStorageInfo,
@@ -378,12 +529,13 @@ class _ViewContent extends StatelessWidget {
         onDelete: controller.deleteSpiffsFile,
         onFormat: controller.formatSpiffs,
       ),
-      MarauderView.nfc => SingleChildScrollView(
+      MarauderView.nfc when capabilities.supportsNfc => SingleChildScrollView(
         child: NfcPanel(
           lastOutput: state.nfcLastOutput,
           onCommand: controller.sendCommand,
         ),
       ),
+      MarauderView.nfc => const Center(child: Text('NFC not available')),
     };
   }
 }

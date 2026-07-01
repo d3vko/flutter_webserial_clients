@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/device_profile.dart';
+
 typedef CommandCallback = Future<void> Function(String command);
 
 enum CommandBuilderMode { wifi, bluetooth }
@@ -7,11 +9,13 @@ enum CommandBuilderMode { wifi, bluetooth }
 class CommandBuilder extends StatefulWidget {
   const CommandBuilder({
     required this.onCommand,
+    required this.capabilities,
     this.initialMode = CommandBuilderMode.wifi,
     super.key,
   });
 
   final CommandCallback onCommand;
+  final MarauderCapabilities capabilities;
   final CommandBuilderMode initialMode;
 
   @override
@@ -21,6 +25,8 @@ class CommandBuilder extends StatefulWidget {
 class _CommandBuilderState extends State<CommandBuilder> {
   final _customController = TextEditingController();
   late CommandBuilderMode _mode;
+
+  MarauderCapabilities get _caps => widget.capabilities;
 
   @override
   void initState() {
@@ -97,22 +103,38 @@ class _CommandBuilderState extends State<CommandBuilder> {
                     ('Sniff Beacon', 'sniffbeacon'),
                     ('Sniff Deauth', 'sniffdeauth'),
                     ('Sniff PMKID', 'sniffpmkid'),
-                    ('Wardrive', 'wardrive -serial'),
                   ])
                     OutlinedButton(
                       onPressed: () => _send(cmd.$2),
                       child: Text(cmd.$1),
                     ),
-                  _disabledCmd(
-                    context,
-                    'Sniff BT',
-                    'Not supported on ESP32-C5 (single-core)',
+                  OutlinedButton(
+                    onPressed: () => _send(_caps.wifiWardriveCommand),
+                    child: const Text('Wardrive'),
                   ),
-                  _disabledCmd(
-                    context,
-                    'BT Wardrive',
-                    'Not supported on ESP32-C5 (single-core)',
-                  ),
+                  if (_caps.supportsBleSniff)
+                    OutlinedButton(
+                      onPressed: () => _send('sniffbt'),
+                      child: const Text('Sniff BT'),
+                    )
+                  else
+                    _disabledCmd(
+                      context,
+                      'Sniff BT',
+                      'Not supported on ESP32-C5 (single-core)',
+                    ),
+                  if (_caps.supportsBtWardrive &&
+                      _caps.btWardriveCommand != null)
+                    OutlinedButton(
+                      onPressed: () => _send(_caps.btWardriveCommand!),
+                      child: const Text('BT Wardrive'),
+                    )
+                  else if (!_caps.supportsBtWardrive)
+                    _disabledCmd(
+                      context,
+                      'BT Wardrive',
+                      'Not supported on ESP32-C5 (single-core)',
+                    ),
                 ],
               ),
             ] else ...[
@@ -133,16 +155,29 @@ class _CommandBuilderState extends State<CommandBuilder> {
                       onPressed: () => _send(cmd.$2),
                       child: Text(cmd.$1),
                     ),
-                  _disabledCmd(
-                    context,
-                    'Sniff BT',
-                    'BLE sniffing not available on ESP32-C5',
-                  ),
-                  _disabledCmd(
-                    context,
-                    'BT Wardrive',
-                    'BT wardrive not available on ESP32-C5',
-                  ),
+                  if (_caps.supportsBleSniff)
+                    OutlinedButton(
+                      onPressed: () => _send('sniffbt'),
+                      child: const Text('Sniff BT'),
+                    )
+                  else
+                    _disabledCmd(
+                      context,
+                      'Sniff BT',
+                      'BLE sniffing not available on ESP32-C5',
+                    ),
+                  if (_caps.supportsBtWardrive &&
+                      _caps.btWardriveCommand != null)
+                    OutlinedButton(
+                      onPressed: () => _send(_caps.btWardriveCommand!),
+                      child: const Text('BT Wardrive'),
+                    )
+                  else if (!_caps.supportsBtWardrive)
+                    _disabledCmd(
+                      context,
+                      'BT Wardrive',
+                      'BT wardrive not available on ESP32-C5',
+                    ),
                 ],
               ),
             ],

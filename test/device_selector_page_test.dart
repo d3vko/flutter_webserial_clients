@@ -19,7 +19,10 @@ void main() {
       await tester.pumpAndSettle();
 
       for (final profile in DeviceProfile.all) {
-        expect(find.text(profile.title), findsOneWidget);
+        expect(
+          find.widgetWithText(FilledButton, 'Abrir ${profile.id}'),
+          findsOneWidget,
+        );
       }
 
       expect(find.text('made by: d3v.k0'), findsOneWidget);

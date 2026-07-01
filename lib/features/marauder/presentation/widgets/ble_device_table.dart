@@ -8,6 +8,7 @@ class BleDeviceTable extends StatefulWidget {
     required this.isConnected,
     required this.onRefresh,
     required this.onClear,
+    this.showEsp32C5Warning = false,
     super.key,
   });
 
@@ -15,6 +16,7 @@ class BleDeviceTable extends StatefulWidget {
   final bool isConnected;
   final VoidCallback onRefresh;
   final VoidCallback onClear;
+  final bool showEsp32C5Warning;
 
   @override
   State<BleDeviceTable> createState() => _BleDeviceTableState();
@@ -41,11 +43,13 @@ class _BleDeviceTableState extends State<BleDeviceTable> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'ESP32-C5: BLE spam TX supported; sniffing/BT wardrive not available.',
-          style: TextStyle(fontSize: 12, color: Colors.amber),
-        ),
-        const SizedBox(height: 8),
+        if (widget.showEsp32C5Warning) ...[
+          const Text(
+            'ESP32-C5: BLE spam TX supported; sniffing/BT wardrive not available.',
+            style: TextStyle(fontSize: 12, color: Colors.amber),
+          ),
+          const SizedBox(height: 8),
+        ],
         Row(
           children: [
             Text(

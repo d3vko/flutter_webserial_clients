@@ -36,6 +36,7 @@ Los valores de `device_source` están **fijos en código** ([`device_profile.dar
 | `/tsim7600hg` | LilyGO TSIM7600H-G | Sí | WiFi, BLE, LTE (3 CSV separados) | `rf custom firmware wifi` (WiFi/BLE) |
 | | | | | `rf custom firmware lte` (LTE) |
 | `/pwnterrey-marauder` | Badge Pwnterrey 2026 | Sí | Wardrive WiGLE CSV | `pwnterrey marauder` |
+| `/oficial-marauder` | ESP32 Marauder oficial | Sí | Wardrive WiGLE CSV | `pwnterrey marauder` |
 | `/magspoof-v5` | MagSpoof V5 | No | — | — (solo export CSV local) |
 
 ## Contenido de los CSV
@@ -54,7 +55,7 @@ WiFi y BLE comparten el mismo `device_source` (`rf custom firmware wifi`); el ba
 
 Formato **WigleWifi 1.4**:
 
-1. Meta: `WigleWifi-1.4,appRelease=PwnterreyESP32Marauder`
+1. Meta: `WigleWifi-1.4,appRelease=PwnterreyESP32Marauder` (Pwnterrey) o `ESP32Marauder` (oficial, fallback si el dialecto serial no trae `appRelease`)
 2. Cabecera: MAC, SSID, AuthMode, FirstSeen, Channel, RSSI, CurrentLatitude, CurrentLongitude, AltitudeMeters, AccuracyMeters, Type (+ LastSeen, Frequency opcionales)
 3. Filas de APs capturados
 

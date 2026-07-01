@@ -157,6 +157,15 @@ class _AuthModalState extends ConsumerState<AuthModal> {
               Text(_error, style: const TextStyle(color: Colors.redAccent)),
             if (_success.isNotEmpty)
               Text(_success, style: const TextStyle(color: Colors.greenAccent)),
+            const SizedBox(height: 8),
+            _AuthViewLinks(
+              view: _view,
+              onSwitch: (view) => setState(() {
+                _view = view;
+                _error = '';
+                _success = '';
+              }),
+            ),
           ],
         ),
       ),
@@ -180,14 +189,49 @@ class _AuthModalState extends ConsumerState<AuthModal> {
   }
 }
 
-Future<void> showAuthModal(
+Future<bool?> showAuthModal(
   BuildContext context,
   WidgetRef ref,
   DeviceProfile profile, {
   AuthView view = AuthView.login,
-}) async {
-  await showDialog<bool>(
+}) {
+  return showDialog<bool>(
     context: context,
     builder: (context) => AuthModal(profile: profile, initialView: view),
   );
+}
+
+class _AuthViewLinks extends StatelessWidget {
+  const _AuthViewLinks({required this.view, required this.onSwitch});
+
+  final AuthView view;
+  final ValueChanged<AuthView> onSwitch;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (view) {
+      AuthView.login => Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        children: [
+          TextButton(
+            onPressed: () => onSwitch(AuthView.register),
+            child: const Text('Create account'),
+          ),
+          TextButton(
+            onPressed: () => onSwitch(AuthView.forgot),
+            child: const Text('Forgot password?'),
+          ),
+        ],
+      ),
+      AuthView.register => TextButton(
+        onPressed: () => onSwitch(AuthView.login),
+        child: const Text('Already have an account? Log in'),
+      ),
+      AuthView.forgot => TextButton(
+        onPressed: () => onSwitch(AuthView.login),
+        child: const Text('Back to log in'),
+      ),
+    };
+  }
 }

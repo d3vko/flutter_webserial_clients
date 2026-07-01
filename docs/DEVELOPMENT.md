@@ -115,7 +115,9 @@ Borrar datos del sitio en Chrome **no ayuda** si el servidor sigue sirviendo una
 
 3. **Proxy inverso** (Nginx Proxy Manager, Traefik, Cloudflare): desactiva cache para esta app o purga cache tras cada deploy. Si accedes por `https://dominio` pero pruebas `http://IP:8090`, son orígenes distintos.
 
-4. **Desarrollo local** (sin Docker):
+4. **Misma pestaña vieja, pestaña nueva bien** — suele ser un **service worker** de un deploy anterior (Flutter PWA). El bootstrap reactiva cualquier SW registrado aunque el build actual use `--pwa-strategy=none`. `web/index.html` ahora lo desregistra antes de cargar Flutter; tras redeploy, abre la URL una vez (puede recargar sola) o en DevTools → Application → Service Workers → *Unregister*.
+
+5. **Desarrollo local** (sin Docker):
 
    ```bash
    flutter clean

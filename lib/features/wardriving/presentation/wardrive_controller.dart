@@ -33,12 +33,10 @@ final wardriveControllerProvider =
       WardriveState,
       DeviceProfile
     >((ref, profile) {
-      final controller = WardriveController(
+      return WardriveController(
         profile: profile,
         api: ref.watch(wardriveApiProvider),
       );
-      ref.onDispose(controller.dispose);
-      return controller;
     });
 
 class WardriveController extends StateNotifier<WardriveState> {
@@ -83,7 +81,7 @@ class WardriveController extends StateNotifier<WardriveState> {
 
   Future<void> _loadStoredAuth() async {
     final stored = await _authStorage.load();
-    if (stored == null) return;
+    if (stored == null || !mounted) return;
     state = state.copyWith(
       authAccess: stored.access,
       authRefresh: stored.refresh,

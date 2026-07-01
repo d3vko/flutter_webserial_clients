@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/device_profile.dart';
+import '../../../core/config/wardrive_config.dart';
 import '../../wardriving/data/wardrive_api_repository.dart';
 import '../../wardriving/presentation/wardrive_controller.dart';
 import 'marauder_controller.dart';
@@ -91,6 +92,8 @@ class _MarauderAuthModalState extends ConsumerState<MarauderAuthModal> {
           );
           setState(() => _success = response.detail);
       }
+    } on ApiConfigError catch (error) {
+      setState(() => _error = error.message);
     } catch (error) {
       setState(() => _error = error.toString());
     } finally {
@@ -149,6 +152,15 @@ class _MarauderAuthModalState extends ConsumerState<MarauderAuthModal> {
               const SizedBox(height: 12),
               Text(_success, style: const TextStyle(color: Colors.greenAccent)),
             ],
+            const SizedBox(height: 8),
+            _AuthViewLinks(
+              view: _view,
+              onSwitch: (view) => setState(() {
+                _view = view;
+                _error = '';
+                _success = '';
+              }),
+            ),
           ],
         ),
       ),
@@ -172,15 +184,50 @@ class _MarauderAuthModalState extends ConsumerState<MarauderAuthModal> {
   }
 }
 
-Future<void> showMarauderAuthModal(
+Future<bool?> showMarauderAuthModal(
   BuildContext context,
   WidgetRef ref,
   DeviceProfile profile, {
   MarauderAuthView view = MarauderAuthView.login,
-}) async {
-  await showDialog<bool>(
+}) {
+  return showDialog<bool>(
     context: context,
     builder: (context) =>
         MarauderAuthModal(profile: profile, initialView: view),
   );
+}
+
+class _AuthViewLinks extends StatelessWidget {
+  const _AuthViewLinks({required this.view, required this.onSwitch});
+
+  final MarauderAuthView view;
+  final ValueChanged<MarauderAuthView> onSwitch;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (view) {
+      MarauderAuthView.login => Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        children: [
+          TextButton(
+            onPressed: () => onSwitch(MarauderAuthView.register),
+            child: const Text('Create account'),
+          ),
+          TextButton(
+            onPressed: () => onSwitch(MarauderAuthView.forgot),
+            child: const Text('Forgot password?'),
+          ),
+        ],
+      ),
+      MarauderAuthView.register => TextButton(
+        onPressed: () => onSwitch(MarauderAuthView.login),
+        child: const Text('Already have an account? Log in'),
+      ),
+      MarauderAuthView.forgot => TextButton(
+        onPressed: () => onSwitch(MarauderAuthView.login),
+        child: const Text('Back to log in'),
+      ),
+    };
+  }
 }

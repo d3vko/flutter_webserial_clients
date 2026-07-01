@@ -98,6 +98,16 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
                         if (!context.mounted) return;
                         await showAuthModal(context, ref, widget.profile);
                       }
+                    case 'register':
+                      if (!state.isLoggedIn) {
+                        if (!context.mounted) return;
+                        await showAuthModal(
+                          context,
+                          ref,
+                          widget.profile,
+                          view: AuthView.register,
+                        );
+                      }
                   }
                 },
                 itemBuilder: (context) => [
@@ -107,14 +117,18 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
                       state.isDarkTheme ? 'White mode' : 'Black mode',
                     ),
                   ),
-                  PopupMenuItem(
-                    value: 'login',
-                    child: Text(
-                      state.isLoggedIn
-                          ? 'Logout (${state.authUsername})'
-                          : 'Log in',
+                  if (state.isLoggedIn)
+                    PopupMenuItem(
+                      value: 'login',
+                      child: Text('Logout (${state.authUsername})'),
+                    )
+                  else ...[
+                    const PopupMenuItem(value: 'login', child: Text('Log in')),
+                    const PopupMenuItem(
+                      value: 'register',
+                      child: Text('Register'),
                     ),
-                  ),
+                  ],
                 ],
               )
             else ...[
@@ -127,11 +141,21 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
                   onPressed: () async => _controller.logout(),
                   child: Text('Logout (${state.authUsername})'),
                 )
-              else
+              else ...[
                 TextButton(
                   onPressed: () => showAuthModal(context, ref, widget.profile),
                   child: const Text('Log in'),
                 ),
+                TextButton(
+                  onPressed: () => showAuthModal(
+                    context,
+                    ref,
+                    widget.profile,
+                    view: AuthView.register,
+                  ),
+                  child: const Text('Register'),
+                ),
+              ],
             ],
           ],
         ),

@@ -29,12 +29,10 @@ final marauderControllerProvider =
       MarauderState,
       DeviceProfile
     >((ref, profile) {
-      final controller = MarauderController(
+      return MarauderController(
         profile: profile,
         api: ref.watch(wardriveApiProvider),
       );
-      ref.onDispose(controller.dispose);
-      return controller;
     });
 
 class MarauderController extends StateNotifier<MarauderState> {
@@ -69,6 +67,7 @@ class MarauderController extends StateNotifier<MarauderState> {
   String _readCarry = '';
   int _terminalLineId = 0;
   final _wardriveKeys = <String>{};
+  var _pendingUploadWardrive = false;
   final _pendingSpiffsFiles = <SpiffsFile>[];
   final _captureBuffer = <String>[];
 
@@ -85,7 +84,7 @@ class MarauderController extends StateNotifier<MarauderState> {
 
   Future<void> _loadStoredAuth() async {
     final stored = await _authStorage.load();
-    if (stored == null) return;
+    if (stored == null || !mounted) return;
     state = state.copyWith(
       authAccess: stored.access,
       authRefresh: stored.refresh,
@@ -239,7 +238,8 @@ class MarauderController extends StateNotifier<MarauderState> {
     if (lower.startsWith('gps') ||
         lower == 'gpsdata' ||
         lower == 'nmea' ||
-        lower.startsWith('gpspoi')) {
+        lower.startsWith('gpspoi') ||
+        lower.startsWith('gpstracker')) {
       state = state.copyWith(currentView: MarauderView.gps);
     } else if (lower.startsWith('wardrive') || lower.startsWith('btwardrive')) {
       state = state.copyWith(currentView: MarauderView.wardrive);
@@ -481,9 +481,13 @@ class MarauderController extends StateNotifier<MarauderState> {
 
   void downloadWardriveCsv() {
     if (state.wardriveEntries.isEmpty) return;
+    final baseRelease =
+        state.profile.marauderCapabilities?.baseAppRelease ??
+        'PwnterreyESP32Marauder';
     final csv = buildWardriveCsvString(
       state.wardriveEntries,
       state.wardriveDialect,
+      baseRelease,
     );
     downloadTextFile(csv, wardriveCsvFileName());
   }
@@ -544,9 +548,13 @@ class MarauderController extends StateNotifier<MarauderState> {
     );
 
     try {
+      final baseRelease =
+          state.profile.marauderCapabilities?.baseAppRelease ??
+          'PwnterreyESP32Marauder';
       final csv = buildWardriveCsvString(
         state.wardriveEntries,
         state.wardriveDialect,
+        baseRelease,
       );
       final filename = wardriveCsvFileName();
       final deviceSource = state.profile.deviceSource!;
@@ -594,6 +602,20 @@ class MarauderController extends StateNotifier<MarauderState> {
   List<MarauderWorkflow> get workflows => marauderWorkflows;
 
   WardriveApiRepository get api => _api;
+
+  void requestUploadWardrive() {
+    _pendingUploadWardrive = true;
+  }
+
+  void clearPendingUploadWardrive() {
+    _pendingUploadWardrive = false;
+  }
+
+  bool consumePendingUploadWardrive() {
+    final pending = _pendingUploadWardrive;
+    _pendingUploadWardrive = false;
+    return pending;
+  }
 }
 
 class WorkflowStepInput {

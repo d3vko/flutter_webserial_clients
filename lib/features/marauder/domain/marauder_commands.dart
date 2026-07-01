@@ -22,6 +22,7 @@ const continuousCommands = {
   'wardrive',
   'btwardrive',
   'gpspoi',
+  'gpstracker',
   'karma',
 };
 
@@ -43,6 +44,9 @@ bool isContinuousCommand(String command) {
 
   final base = trimmed.split(RegExp(r'\s+')).first;
   if (base == 'gps' && trimmed.contains('-t')) {
+    return true;
+  }
+  if (base == 'gpstracker') {
     return true;
   }
   return continuousCommands.contains(base);

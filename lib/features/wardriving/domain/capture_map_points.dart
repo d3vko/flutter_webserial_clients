@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import 'models.dart';
 
 class CaptureMapPoint {
@@ -6,12 +8,16 @@ class CaptureMapPoint {
     required this.latitude,
     required this.longitude,
     required this.label,
+    this.color,
+    this.isGpsFix = false,
   });
 
   final ScanType scanType;
   final double latitude;
   final double longitude;
   final String label;
+  final Color? color;
+  final bool isGpsFix;
 }
 
 bool hasUsableMapCoordinates(String latitude, String longitude) {
