@@ -42,10 +42,9 @@ class DeviceSelectorPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const RfVillageLogo(size: RfVillageLogoSize.hero),
                         const SizedBox(height: 24),
                         Text(
-                          'RF Village MX — Web Serial Clients',
+                          'Hosted by:',
                           style: (isNarrow
                                   ? Theme.of(context).textTheme.titleLarge
                                   : Theme.of(context).textTheme.headlineSmall)
@@ -55,9 +54,11 @@ class DeviceSelectorPage extends StatelessWidget {
                               ),
                           textAlign: TextAlign.center,
                         ),
+                        const RfVillageLogo(size: RfVillageLogoSize.hero),
+                        
                         const SizedBox(height: 12),
                         Text(
-                          'LilyGO wardriving, Badge Pwnterrey Marauder y MagSpoof V5.',
+                          'Welcome to web serial clients',
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
@@ -67,7 +68,7 @@ class DeviceSelectorPage extends StatelessWidget {
                               ),
                         ),
                         const SizedBox(height: 32),
-                        _SectionHeader(title: 'LilyGO Wardriving'),
+                        _SectionHeader(title: 'LilyGO TSIM WiFi/BLE/LTE Wardriving'),
                         for (final profile in DeviceProfile.forKind(
                           AppKind.wardriving,
                         )) ...[
@@ -75,7 +76,7 @@ class DeviceSelectorPage extends StatelessWidget {
                           const SizedBox(height: 16),
                         ],
                         const SizedBox(height: 16),
-                        _SectionHeader(title: 'Marauder Badge'),
+                        _SectionHeader(title: 'Marauder ESP32'),
                         for (final profile in DeviceProfile.forKind(
                           AppKind.marauder,
                         )) ...[
@@ -83,7 +84,7 @@ class DeviceSelectorPage extends StatelessWidget {
                           const SizedBox(height: 16),
                         ],
                         const SizedBox(height: 16),
-                        _SectionHeader(title: 'MagSpoof'),
+                        _SectionHeader(title: 'MagSpoof V5'),
                         for (final profile in DeviceProfile.forKind(
                           AppKind.magspoof,
                         )) ...[
