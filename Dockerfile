@@ -43,13 +43,13 @@ ENV CI=true \
     WARDRIVE_TOKEN_REFRESH_URL=$WARDRIVE_TOKEN_REFRESH_URL
 
 COPY pubspec.yaml pubspec.lock analysis_options.yaml ./
-RUN flutter pub get
-
 COPY lib/ lib/
 COPY web/ web/
 COPY assets/ assets/
 
-RUN flutter build web --release \
+RUN flutter pub get \
+    && flutter build web --release \
+    --no-wasm-dry-run \
     --dart-define=WARDRIVE_LOGIN_URL=${WARDRIVE_LOGIN_URL} \
     --dart-define=WARDRIVE_REGISTER_URL=${WARDRIVE_REGISTER_URL} \
     --dart-define=WARDRIVE_RESET_URL=${WARDRIVE_RESET_URL} \
