@@ -177,6 +177,13 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
                 bleRows: state.bleRows,
               ),
               const SizedBox(height: 16),
+              _BulkActionsBar(
+                state: state,
+                onClearAll: _controller.clearAllRows,
+                onUploadAll: state.hasAnyRows
+                    ? () => _handleUploadAll(state)
+                    : null,
+              ),
               ScanDataSection.lte(
                 subtitle: '${state.lteRows.length} records',
                 filename: makeCsvFilename(ScanType.lte),
@@ -201,31 +208,6 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
                 onClear: () => _controller.clearRows(ScanType.ble),
                 onUpload: () => _handleUpload(ScanType.ble, state),
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton(
-                    onPressed: _controller.clearAllRows,
-                    child: const Text('Clear all'),
-                  ),
-                  FilledButton(
-                    onPressed: state.hasAnyRows
-                        ? () => _handleUploadAll(state)
-                        : null,
-                    child: const Text('Upload all'),
-                  ),
-                ],
-              ),
-              if (state.uploadSummary.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(state.uploadSummary),
-              ],
-              if (state.ignoredCount > 0) ...[
-                const SizedBox(height: 8),
-                Text('Ignored invalid coordinates: ${state.ignoredCount}'),
-              ],
               const SiteCreditFooter(),
             ],
           ),
@@ -251,6 +233,84 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
       return;
     }
     await _controller.requestUploadAll();
+  }
+}
+
+class _BulkActionsBar extends StatelessWidget {
+  const _BulkActionsBar({
+    required this.state,
+    required this.onClearAll,
+    required this.onUploadAll,
+  });
+
+  final WardriveState state;
+  final VoidCallback onClearAll;
+  final VoidCallback? onUploadAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary =
+        'LTE: ${state.lteRows.length} · WiFi: ${state.wifiRows.length} · '
+        'BLE: ${state.bleRows.length}';
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              gradient: RfVillageGradient.cardAccent,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Bulk actions',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(summary, style: Theme.of(context).textTheme.bodyMedium),
+                if (state.ignoredCount > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Ignored invalid coordinates: ${state.ignoredCount}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton(
+                      onPressed: state.hasAnyRows ? onClearAll : null,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.errorRed,
+                        side: const BorderSide(color: AppColors.errorRed),
+                      ),
+                      child: const Text('Clear all'),
+                    ),
+                    FilledButton(
+                      onPressed: onUploadAll,
+                      child: const Text('Upload all'),
+                    ),
+                  ],
+                ),
+                if (state.uploadSummary.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(state.uploadSummary),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -7,8 +7,23 @@ const defaultDataRowHeight = 72.0;
 const kPaginatedTableFooterHeight = 56.0;
 const tableHeightSafetyPadding = 16.0;
 const lteTableMinWidth = 2400.0;
-const wifiTableMinWidth = 1100.0;
-const bleTableMinWidth = 900.0;
+const wifiTableMinWidth = 1700.0;
+const bleTableMinWidth = 1700.0;
+
+const radioTableColumns = [
+  'MAC',
+  'SSID',
+  'AuthMode',
+  'FirstSeen',
+  'Channel',
+  'RSSI',
+  'Lat',
+  'Long',
+  'Altitude',
+  'Accuracy',
+  'Type',
+  'Captured',
+];
 
 double tableMinWidthForScanType(ScanType type) => switch (type) {
   ScanType.lte => lteTableMinWidth,

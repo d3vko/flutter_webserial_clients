@@ -77,6 +77,9 @@ class WifiRecord {
     required this.signal,
     required this.security,
     required this.capturedAt,
+    this.altitudeMeters = '',
+    this.accuracyMeters = '',
+    this.radioType = '',
   });
 
   final String timestamp;
@@ -88,6 +91,9 @@ class WifiRecord {
   final String signal;
   final String security;
   final String capturedAt;
+  final String altitudeMeters;
+  final String accuracyMeters;
+  final String radioType;
 
   ScanType get source => ScanType.wifi;
 }
@@ -99,8 +105,13 @@ class BleRecord {
     required this.longitude,
     required this.address,
     required this.rssi,
-    required this.name,
+    required this.ssid,
     required this.capturedAt,
+    this.channel = '',
+    this.security = '',
+    this.altitudeMeters = '',
+    this.accuracyMeters = '',
+    this.radioType = '',
   });
 
   final String timestamp;
@@ -108,8 +119,15 @@ class BleRecord {
   final String longitude;
   final String address;
   final String rssi;
-  final String name;
+  final String ssid;
   final String capturedAt;
+  final String channel;
+  final String security;
+  final String altitudeMeters;
+  final String accuracyMeters;
+  final String radioType;
+
+  String get name => ssid;
 
   ScanType get source => ScanType.ble;
 }

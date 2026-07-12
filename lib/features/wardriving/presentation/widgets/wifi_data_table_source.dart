@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models.dart';
 import 'scan_table_cell.dart';
 import 'scan_table_formatters.dart';
+import 'scan_table_layout.dart';
 import 'scan_type_theme.dart';
 
 class WifiDataTableSource extends DataTableSource {
@@ -18,36 +19,30 @@ class WifiDataTableSource extends DataTableSource {
     notifyListeners();
   }
 
-  List<DataColumn> columns() => theme.columnsFor(const [
-    'Timestamp',
-    'Lat',
-    'Long',
-    'SSID',
-    'BSSID',
-    'Channel',
-    'Signal',
-    'Security',
-    'Captured',
-  ]);
+  List<DataColumn> columns() => theme.columnsFor(radioTableColumns);
 
   @override
   DataRow? getRow(int index) {
     if (index < 0 || index >= _rows.length) return null;
     final row = _rows[index];
+    final radioType = row.radioType.isEmpty ? 'WIFI' : row.radioType;
     return DataRow(
       color: WidgetStateProperty.all(theme.zebraForRow(index)),
       cells: [
-        scanTableCell(dashIfEmpty(row.timestamp)),
-        scanTableCell(row.latitude),
-        scanTableCell(row.longitude),
-        scanTableCell(hiddenSsid(row.ssid)),
         scanTableCell(row.bssid),
+        scanTableCell(hiddenSsid(row.ssid)),
+        scanTableCell(row.security),
+        scanTableCell(dashIfEmpty(row.timestamp)),
         scanTableCell(row.channel),
         scanTableCell(
           row.signal,
           style: TextStyle(color: theme.signalStrengthColor(row.signal)),
         ),
-        scanTableCell(row.security),
+        scanTableCell(row.latitude),
+        scanTableCell(row.longitude),
+        scanTableCell(dashIfEmpty(row.altitudeMeters)),
+        scanTableCell(dashIfEmpty(row.accuracyMeters)),
+        scanTableCell(radioType),
         scanTableCell(formatCapturedTime(row.capturedAt)),
       ],
     );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models.dart';
 import 'scan_table_cell.dart';
 import 'scan_table_formatters.dart';
+import 'scan_table_layout.dart';
 import 'scan_type_theme.dart';
 
 class BleDataTableSource extends DataTableSource {
@@ -18,32 +19,31 @@ class BleDataTableSource extends DataTableSource {
     notifyListeners();
   }
 
-  List<DataColumn> columns() => theme.columnsFor(const [
-    'Timestamp',
-    'Lat',
-    'Long',
-    'Address',
-    'RSSI',
-    'Name',
-    'Captured',
-  ]);
+  List<DataColumn> columns() => theme.columnsFor(radioTableColumns);
 
   @override
   DataRow? getRow(int index) {
     if (index < 0 || index >= _rows.length) return null;
     final row = _rows[index];
+    final radioType = row.radioType.isEmpty ? 'BLE' : row.radioType;
+    final authMode = row.security.isEmpty ? 'BLE' : row.security;
     return DataRow(
       color: WidgetStateProperty.all(theme.zebraForRow(index)),
       cells: [
-        scanTableCell(dashIfEmpty(row.timestamp)),
-        scanTableCell(row.latitude),
-        scanTableCell(row.longitude),
         scanTableCell(row.address),
+        scanTableCell(unknownIfEmpty(row.ssid)),
+        scanTableCell(authMode),
+        scanTableCell(dashIfEmpty(row.timestamp)),
+        scanTableCell(dashIfEmpty(row.channel)),
         scanTableCell(
           row.rssi,
           style: TextStyle(color: theme.signalStrengthColor(row.rssi)),
         ),
-        scanTableCell(unknownIfEmpty(row.name)),
+        scanTableCell(row.latitude),
+        scanTableCell(row.longitude),
+        scanTableCell(dashIfEmpty(row.altitudeMeters)),
+        scanTableCell(dashIfEmpty(row.accuracyMeters)),
+        scanTableCell(radioType),
         scanTableCell(formatCapturedTime(row.capturedAt)),
       ],
     );

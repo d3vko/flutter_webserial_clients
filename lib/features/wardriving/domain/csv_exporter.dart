@@ -1,5 +1,20 @@
 import 'models.dart';
 
+const _radioExportColumns = [
+  'Source',
+  'MAC',
+  'SSID',
+  'AuthMode',
+  'FirstSeen',
+  'Channel',
+  'RSSI',
+  'CurrentLatitude',
+  'CurrentLongitude',
+  'AltitudeMeters',
+  'AccuracyMeters',
+  'Type',
+];
+
 const _exportHeaders = <ScanType, List<String>>{
   ScanType.lte: [
     'Timestamp',
@@ -25,17 +40,8 @@ const _exportHeaders = <ScanType, List<String>>{
     'Longitud',
     'Latitud',
   ],
-  ScanType.wifi: [
-    'Timestamp',
-    'Lat',
-    'Long',
-    'SSID',
-    'BSSID',
-    'Canal',
-    'Señal',
-    'Seguridad',
-  ],
-  ScanType.ble: ['Timestamp', 'Lat', 'Long', 'Dirección', 'RSSI', 'Nombre'],
+  ScanType.wifi: _radioExportColumns,
+  ScanType.ble: _radioExportColumns,
 };
 
 String buildCsv(ScanType type, List<Object> rows) {
@@ -93,28 +99,68 @@ List<String> _rowToCsvValues(Object row) {
   }
 
   if (row is WifiRecord) {
-    return [
-      row.timestamp,
-      row.latitude,
-      row.longitude,
-      row.ssid,
-      row.bssid,
-      row.channel,
-      row.signal,
-      row.security,
-    ];
+    return _radioRowValues(
+      source: 'wifi',
+      mac: row.bssid,
+      ssid: row.ssid,
+      authMode: row.security,
+      firstSeen: row.timestamp,
+      channel: row.channel,
+      rssi: row.signal,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      altitudeMeters: row.altitudeMeters,
+      accuracyMeters: row.accuracyMeters,
+      type: row.radioType.isEmpty ? 'WIFI' : row.radioType,
+    );
   }
 
   if (row is BleRecord) {
-    return [
-      row.timestamp,
-      row.latitude,
-      row.longitude,
-      row.address,
-      row.rssi,
-      row.name,
-    ];
+    return _radioRowValues(
+      source: 'ble',
+      mac: row.address,
+      ssid: row.ssid,
+      authMode: row.security.isEmpty ? 'BLE' : row.security,
+      firstSeen: row.timestamp,
+      channel: row.channel.isEmpty ? '0' : row.channel,
+      rssi: row.rssi,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      altitudeMeters: row.altitudeMeters,
+      accuracyMeters: row.accuracyMeters,
+      type: row.radioType.isEmpty ? 'BLE' : row.radioType,
+    );
   }
 
   throw ArgumentError('Unsupported row type: ${row.runtimeType}');
+}
+
+List<String> _radioRowValues({
+  required String source,
+  required String mac,
+  required String ssid,
+  required String authMode,
+  required String firstSeen,
+  required String channel,
+  required String rssi,
+  required String latitude,
+  required String longitude,
+  required String altitudeMeters,
+  required String accuracyMeters,
+  required String type,
+}) {
+  return [
+    source,
+    mac,
+    ssid,
+    authMode,
+    firstSeen,
+    channel,
+    rssi,
+    latitude,
+    longitude,
+    altitudeMeters,
+    accuracyMeters,
+    type,
+  ];
 }

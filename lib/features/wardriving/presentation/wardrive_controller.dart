@@ -68,7 +68,7 @@ class WardriveController extends StateNotifier<WardriveState> {
   final AuthStorage _authStorage;
 
   StreamSubscription<String>? _serialSub;
-  String _readCarry = '';
+  final SerialStreamParser _serialParser = SerialStreamParser();
   int _rawLogId = 0;
   bool _pendingUploadAll = false;
 
@@ -168,8 +168,7 @@ class WardriveController extends StateNotifier<WardriveState> {
     await _serialSub?.cancel();
     _serialSub = null;
 
-    final flushed = flushSerialCarry(_readCarry);
-    _readCarry = '';
+    final flushed = _serialParser.flush();
     _consumeEvents(flushed);
 
     await _serial.disconnect();
@@ -197,9 +196,8 @@ class WardriveController extends StateNotifier<WardriveState> {
   }
 
   void _consumeChunk(String chunk) {
-    final parsed = parseSerialChunk(chunk, carry: _readCarry);
-    _readCarry = parsed.carry;
-    _consumeEvents(parsed.events);
+    final events = _serialParser.parseChunk(chunk);
+    _consumeEvents(events);
   }
 
   void _consumeEvents(List<ParsedSerialEvent> events) {
@@ -270,10 +268,17 @@ class WardriveController extends StateNotifier<WardriveState> {
       'ble,2026-04-10T23:52:09.000Z,19.4326080,-99.1332090,AA:BB:CC:DD:EE:01,-72,',
       'ble,2026-04-10T23:52:10.000Z,19.4355000,-99.1280000,11:22:33:44:55:66,-58,BeaconTag',
       'ble,2026-04-10T23:52:11.000Z,19.4370000,-99.1270000,FE:DC:BA:98:76:54,-61,RFVillageBeacon',
+      radioUnifiedHeader,
+      'wifi,AA:BB:CC:DD:EE:FF,RedCasa,WPA2_PSK,2026-07-02 12:00:00,6,-65,19.4326000,-99.1332000,2240.00,5.00,WIFI',
+      'ble,11:22:33:44:55:66,,BLE,2026-07-02 12:00:00,0,-72,19.4326000,-99.1332000,2240.00,5.00,BLE',
       '[ble] logged 4 devices',
     ];
 
-    _consumeEvents(sample.map(parseSerialLine).toList());
+    final parser = SerialStreamParser();
+    final capturedAt = DateTime.now().toUtc().toIso8601String();
+    _consumeEvents(
+      sample.map((line) => parser.parseLine(line, capturedAt)).toList(),
+    );
   }
 
   void clearRows(ScanType type) {
