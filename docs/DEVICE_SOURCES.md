@@ -43,8 +43,17 @@ Los valores de `device_source` están **fijos en código** ([`device_profile.dar
 
 ### LilyGO (wardriving)
 
-**WiFi** — columnas: Timestamp, Lat, Long, SSID, BSSID, Canal, Señal, Seguridad  
-**BLE** — columnas: Timestamp, Lat, Long, Dirección, RSSI, Nombre  
+**WiFi / BLE** — formato unificado (compatible con firmware legacy en español):
+
+Cabecera: `Source,MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type`
+
+Filas: `wifi,...` o `ble,...`
+
+Legacy (solo si el firmware antiguo sigue activo):
+
+- WiFi: `Source,Timestamp,Lat,Long,SSID,BSSID,Canal,Señal,Seguridad`
+- BLE: `Source,Timestamp,Lat,Long,Dirección,RSSI,Nombre`
+
 **LTE** — columnas: Timestamp, Tecnología, TipoCelda, Estado, MCC, MNC, LAC, CellID, eNodeB, Sector, PCI, Banda, EARFCN, FreqDL_MHz, FreqUL_MHz, RSSI, RSRP, RSRQ, SINR, Operador, Longitud, Latitud
 
 Nombre de archivo: `lilygo_{wifi|ble|lte}_YYYYMMDD_HHMMSS.csv`

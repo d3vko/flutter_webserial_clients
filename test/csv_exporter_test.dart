@@ -1,53 +1,62 @@
 import 'package:lilygo_wardriving_web/features/wardriving/domain/csv_exporter.dart';
 import 'package:lilygo_wardriving_web/features/wardriving/domain/models.dart';
+import 'package:lilygo_wardriving_web/features/wardriving/domain/serial_parser.dart';
 import 'package:test/test.dart';
 
 const capturedAt = '2026-04-10T23:52:01.000Z';
 
 void main() {
   group('buildCsv', () {
-    test('exports WiFi rows with headers and escaped values', () {
+    test('exports WiFi rows with unified Wigle headers and escaped values', () {
       const rows = [
         WifiRecord(
-          timestamp: '',
-          latitude: '19.4326080',
-          longitude: '-99.1332090',
+          timestamp: '2026-07-02 12:00:00',
+          latitude: '19.4326000',
+          longitude: '-99.1332000',
           ssid: 'Cafe, "Centro"',
           bssid: '34:6B:46:EC:BA:0B',
           channel: '11',
           signal: '-53',
           security: 'WPA2_PSK',
           capturedAt: capturedAt,
+          altitudeMeters: '2240.00',
+          accuracyMeters: '5.00',
+          radioType: 'WIFI',
         ),
       ];
 
       expect(
         buildCsv(ScanType.wifi, rows),
         [
-          'Timestamp,Lat,Long,SSID,BSSID,Canal,Señal,Seguridad',
-          ',19.4326080,-99.1332090,"Cafe, ""Centro""",34:6B:46:EC:BA:0B,11,-53,WPA2_PSK',
+          radioUnifiedHeader,
+          'wifi,34:6B:46:EC:BA:0B,"Cafe, ""Centro""",WPA2_PSK,2026-07-02 12:00:00,11,-53,19.4326000,-99.1332000,2240.00,5.00,WIFI',
         ].join('\n'),
       );
     });
 
-    test('exports BLE rows without internal Source or CapturedAt fields', () {
+    test('exports BLE rows with unified Wigle headers', () {
       const rows = [
         BleRecord(
-          timestamp: '',
-          latitude: '19.4326080',
-          longitude: '-99.1332090',
+          timestamp: '2026-07-02 12:00:00',
+          latitude: '19.4326000',
+          longitude: '-99.1332000',
           address: '80:E1:26:76:33:64',
           rssi: '-65',
-          name: 'd3vnull0',
+          ssid: 'd3vnull0',
           capturedAt: capturedAt,
+          channel: '0',
+          security: 'BLE',
+          altitudeMeters: '2240.00',
+          accuracyMeters: '5.00',
+          radioType: 'BLE',
         ),
       ];
 
       expect(
         buildCsv(ScanType.ble, rows),
         [
-          'Timestamp,Lat,Long,Dirección,RSSI,Nombre',
-          ',19.4326080,-99.1332090,80:E1:26:76:33:64,-65,d3vnull0',
+          radioUnifiedHeader,
+          'ble,80:E1:26:76:33:64,d3vnull0,BLE,2026-07-02 12:00:00,0,-65,19.4326000,-99.1332000,2240.00,5.00,BLE',
         ].join('\n'),
       );
     });

@@ -6,7 +6,7 @@ const capturedAt = '2026-04-10T23:52:01.000Z';
 
 void main() {
   group('parseSerialLine', () {
-    test('detects LTE, WiFi, and BLE headers', () {
+    test('detects LTE, WiFi, BLE legacy, and unified radio headers', () {
       expect(
         parseSerialLine(lteHeader, capturedAt: capturedAt),
         isA<HeaderEvent>()
@@ -30,6 +30,12 @@ void main() {
         isA<HeaderEvent>()
             .having((e) => e.scanType, 'scanType', ScanType.ble)
             .having((e) => e.line, 'line', bleHeader),
+      );
+      expect(
+        parseSerialLine(radioUnifiedHeader, capturedAt: capturedAt),
+        isA<HeaderEvent>()
+            .having((e) => e.scanType, 'scanType', ScanType.wifi)
+            .having((e) => e.line, 'line', radioUnifiedHeader),
       );
     });
 
@@ -78,7 +84,7 @@ void main() {
       expect(lte.record.capturedAt, capturedAt);
     });
 
-    test('parses a valid WiFi row with an empty SSID', () {
+    test('parses a valid legacy WiFi row with an empty SSID', () {
       const line =
           'wifi,,19.4326080,-99.1332090,,A2:31:DB:A0:CC:C6,7,-73,WPA2_PSK';
       final event = parseSerialLine(line, capturedAt: capturedAt);
@@ -88,16 +94,50 @@ void main() {
       expect(wifi.record.ssid, '');
       expect(wifi.record.bssid, 'A2:31:DB:A0:CC:C6');
       expect(wifi.record.security, 'WPA2_PSK');
+      expect(wifi.record.radioType, 'WIFI');
     });
 
-    test('parses a valid BLE row', () {
+    test('parses a valid legacy BLE row', () {
       const line = 'ble,,19.4326080,-99.1332090,80:E1:26:76:33:64,-65,d3vnull0';
       final event = parseSerialLine(line, capturedAt: capturedAt);
 
       expect(event, isA<BleEvent>());
       final ble = event as BleEvent;
       expect(ble.record.address, '80:E1:26:76:33:64');
+      expect(ble.record.ssid, 'd3vnull0');
       expect(ble.record.name, 'd3vnull0');
+    });
+
+    test('parses unified WiFi and BLE rows after unified header', () {
+      final parser = SerialStreamParser();
+      parser.parseLine(radioUnifiedHeader, capturedAt);
+
+      const wifiLine =
+          'wifi,AA:BB:CC:DD:EE:FF,RedCasa,WPA2_PSK,2026-07-02 12:00:00,6,-65,19.4326000,-99.1332000,2240.00,5.00,WIFI';
+      final wifiEvent = parser.parseLine(wifiLine, capturedAt);
+      expect(wifiEvent, isA<WifiEvent>());
+      final wifi = wifiEvent as WifiEvent;
+      expect(wifi.record.bssid, 'AA:BB:CC:DD:EE:FF');
+      expect(wifi.record.ssid, 'RedCasa');
+      expect(wifi.record.security, 'WPA2_PSK');
+      expect(wifi.record.timestamp, '2026-07-02 12:00:00');
+      expect(wifi.record.channel, '6');
+      expect(wifi.record.signal, '-65');
+      expect(wifi.record.altitudeMeters, '2240.00');
+      expect(wifi.record.accuracyMeters, '5.00');
+      expect(wifi.record.radioType, 'WIFI');
+
+      const bleLine =
+          'ble,11:22:33:44:55:66,,BLE,2026-07-02 12:00:00,0,-72,19.4326000,-99.1332000,2240.00,5.00,BLE';
+      final bleEvent = parser.parseLine(bleLine, capturedAt);
+      expect(bleEvent, isA<BleEvent>());
+      final ble = bleEvent as BleEvent;
+      expect(ble.record.address, '11:22:33:44:55:66');
+      expect(ble.record.ssid, '');
+      expect(ble.record.security, 'BLE');
+      expect(ble.record.channel, '0');
+      expect(ble.record.rssi, '-72');
+      expect(ble.record.radioType, 'BLE');
     });
 
     test('rejects zero-coordinate rows for every scan type', () {
@@ -166,10 +206,12 @@ void main() {
     });
   });
 
-  group('parseSerialChunk', () {
+  group('SerialStreamParser', () {
     test('buffers partial lines across chunks', () {
+      final parser = SerialStreamParser();
       final first = parseSerialChunk(
         'wifi,,19.4326080,-99.1332090,Network',
+        parser: parser,
         capturedAt: capturedAt,
       );
       expect(first.events, isEmpty);
@@ -177,7 +219,7 @@ void main() {
 
       final second = parseSerialChunk(
         ',AA:BB:CC:DD:EE:FF,11,-53,WPA2_PSK\n[ble] logged 1 devices\n',
-        carry: first.carry,
+        parser: parser,
         capturedAt: capturedAt,
       );
       expect(second.carry, '');
@@ -185,6 +227,26 @@ void main() {
         WifiEvent,
         LogEvent,
       ]);
+    });
+
+    test('switches between legacy and unified formats within one stream', () {
+      final parser = SerialStreamParser();
+      parser.parseLine(wifiHeader, capturedAt);
+      final legacy = parser.parseLine(
+        'wifi,,19.4326080,-99.1332090,LegacyNet,AA:BB:CC:DD:EE:FF,6,-65,WPA2_PSK',
+        capturedAt,
+      );
+      expect(legacy, isA<WifiEvent>());
+      expect((legacy as WifiEvent).record.ssid, 'LegacyNet');
+
+      parser.parseLine(radioUnifiedHeader, capturedAt);
+      final unified = parser.parseLine(
+        'wifi,AA:BB:CC:DD:EE:FF,RedCasa,WPA2_PSK,2026-07-02 12:00:00,6,-65,19.4326000,-99.1332000,2240.00,5.00,WIFI',
+        capturedAt,
+      );
+      expect(unified, isA<WifiEvent>());
+      expect((unified as WifiEvent).record.ssid, 'RedCasa');
+      expect(unified.record.altitudeMeters, '2240.00');
     });
   });
 }

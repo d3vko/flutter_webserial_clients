@@ -52,7 +52,7 @@ void main() {
         longitude: '-99.1270000',
         address: 'FE:DC:BA:98:76:54',
         rssi: '-61',
-        name: 'Beacon',
+        ssid: 'Beacon',
         capturedAt: '',
       );
 
