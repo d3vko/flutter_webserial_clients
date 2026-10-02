@@ -353,5 +353,23 @@ void main() {
       expect(ble.record.longitude, '0.0000000');
       expect(ble.record.radioType, 'BLE');
     });
+
+    test('parses Wigle WIFI mid-stream without prior header', () {
+      final parser = SerialStreamParser();
+      // Firmware already printed WigleWifi + column header before connect.
+      const wifiLine =
+          'b4:04:18:00:5b:d9,ActionCam_b40418005b89,WPA2_PSK,'
+          '2026-10-02 03:56:17,11,2462,-92,1.2345678,-9.8765432,100.00,5.00,,WIFI';
+      final event = parser.parseLine(wifiLine, capturedAt);
+      expect(event, isA<WifiEvent>());
+      final wifi = event as WifiEvent;
+      expect(wifi.record.bssid, 'b4:04:18:00:5b:d9');
+      expect(wifi.record.ssid, 'ActionCam_b40418005b89');
+      expect(wifi.record.channel, '11');
+      expect(wifi.record.signal, '-92');
+      expect(wifi.record.latitude, '1.2345678');
+      expect(wifi.record.longitude, '-9.8765432');
+      expect(wifi.record.radioType, 'WIFI');
+    });
   });
 }

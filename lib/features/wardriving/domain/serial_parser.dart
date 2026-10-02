@@ -23,6 +23,20 @@ final _wigleMetaRe = RegExp(r'^WigleWifi-(\d+\.\d+)', caseSensitive: false);
 final _macRe = RegExp(r'^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$');
 final _gpsKvRe = RegExp(r'(\w+)=((?:(?!\s+\w+=).)+)');
 final _espIdfLogRe = RegExp(r'^[WEIDV]\s+\(\d+\)\s');
+final _wigleTypeTailRe = RegExp(r',(WIFI|BLE|BT)\s*$', caseSensitive: false);
+
+/// Minino custom RF Village column layout (matches USB_CSV_CONTRACT).
+const _defaultMininoWigleHeader =
+    'MAC,SSID,AuthMode,FirstSeen,Channel,Frequency,RSSI,'
+    'CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,'
+    'RCOIs,MfgrId,Type';
+
+/// Compact layout when firmware omits MfgrId (Type is last field).
+const _mininoWigleHeaderNoMfgr =
+    'MAC,SSID,AuthMode,FirstSeen,Channel,Frequency,RSSI,'
+    'CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,'
+    'RCOIs,Type';
+
 
 const _wigleHeaderAliases = <String, List<String>>{
   'mac': ['MAC', 'BSSID', 'netid'],
@@ -87,6 +101,9 @@ class SerialStreamParser {
 
     if (_wigleMetaRe.hasMatch(trimmed)) {
       wigleMode = true;
+      wigleColumnIndex ??= _columnIndexFromHeader(_defaultMininoWigleHeader);
+      wifiFormat = RadioRowFormat.wigleWifi14;
+      bleFormat = RadioRowFormat.wigleWifi14;
       return LogEvent(line: trimmed);
     }
 
@@ -103,6 +120,17 @@ class SerialStreamParser {
     if (headerType != null) {
       _applyHeaderFormat(headerType, trimmed);
       return HeaderEvent(scanType: headerType, line: trimmed);
+    }
+
+    // Mid-stream connect: firmware already printed the header. Detect Wigle
+    // rows by MAC + trailing Type=WIFI|BLE and parse with a default map.
+    if (_looksLikeWigleDataRow(trimmed)) {
+      wigleMode = true;
+      wigleColumnIndex ??= _inferWigleColumnIndex(trimmed);
+      wifiFormat = RadioRowFormat.wigleWifi14;
+      bleFormat = RadioRowFormat.wigleWifi14;
+      final wigleEvent = _parseWigleWifi14Row(trimmed, capturedAt);
+      if (wigleEvent != null) return wigleEvent;
     }
 
     if (wigleMode && wigleColumnIndex != null) {
@@ -442,11 +470,35 @@ class SerialStreamParser {
     final mac = _getByCanonical(fields, index, 'mac');
     if (!_macRe.hasMatch(mac)) return null;
 
-    final type = _getByCanonical(fields, index, 'type').trim().toUpperCase();
+    var type = _getByCanonical(fields, index, 'type').trim().toUpperCase();
+    // Firmware sometimes omits MfgrId so Type sits one column earlier / last.
+    if (type.isEmpty && fields.isNotEmpty) {
+      final tail = fields.last.trim().toUpperCase();
+      if (tail == 'WIFI' || tail == 'BLE' || tail == 'BT') {
+        type = tail;
+      }
+    }
+
     final security = _getByCanonical(fields, index, 'security');
     final isBle = type == 'BLE' || security == '[BLE]' || security == 'BLE';
-    final latitude = _getByCanonical(fields, index, 'latitude');
-    final longitude = _getByCanonical(fields, index, 'longitude');
+    var latitude = _getByCanonical(fields, index, 'latitude');
+    var longitude = _getByCanonical(fields, index, 'longitude');
+    var activeIndex = index;
+
+    // If header map is misaligned (missing MfgrId), recover with compact layout.
+    if (!_hasParseableCoordinates(latitude, longitude) &&
+        fields.length >= 10 &&
+        type.isNotEmpty) {
+      final compact = _inferWigleColumnIndex(line);
+      final compactLat = _getByCanonical(fields, compact, 'latitude');
+      final compactLon = _getByCanonical(fields, compact, 'longitude');
+      if (_hasParseableCoordinates(compactLat, compactLon)) {
+        activeIndex = compact;
+        latitude = compactLat;
+        longitude = compactLon;
+        wigleColumnIndex = compact;
+      }
+    }
 
     // Wigle rows may legitimately use 0.0 when GPS has no fix.
     if (!_hasParseableCoordinates(latitude, longitude)) {
@@ -457,17 +509,17 @@ class SerialStreamParser {
       return BleEvent(
         line: line,
         record: BleRecord(
-          timestamp: _getByCanonical(fields, index, 'first_seen'),
+          timestamp: _getByCanonical(fields, activeIndex, 'first_seen'),
           latitude: latitude,
           longitude: longitude,
           address: mac,
-          rssi: _getByCanonical(fields, index, 'rssi'),
-          ssid: _getByCanonical(fields, index, 'ssid'),
-          channel: _getByCanonical(fields, index, 'channel'),
+          rssi: _getByCanonical(fields, activeIndex, 'rssi'),
+          ssid: _getByCanonical(fields, activeIndex, 'ssid'),
+          channel: _getByCanonical(fields, activeIndex, 'channel'),
           security: security,
           capturedAt: capturedAt,
-          altitudeMeters: _getByCanonical(fields, index, 'altitude'),
-          accuracyMeters: _getByCanonical(fields, index, 'accuracy'),
+          altitudeMeters: _getByCanonical(fields, activeIndex, 'altitude'),
+          accuracyMeters: _getByCanonical(fields, activeIndex, 'accuracy'),
           radioType: type.isEmpty ? 'BLE' : type,
         ),
       );
@@ -476,17 +528,17 @@ class SerialStreamParser {
     return WifiEvent(
       line: line,
       record: WifiRecord(
-        timestamp: _getByCanonical(fields, index, 'first_seen'),
+        timestamp: _getByCanonical(fields, activeIndex, 'first_seen'),
         latitude: latitude,
         longitude: longitude,
-        ssid: _getByCanonical(fields, index, 'ssid'),
+        ssid: _getByCanonical(fields, activeIndex, 'ssid'),
         bssid: mac,
-        channel: _getByCanonical(fields, index, 'channel'),
-        signal: _getByCanonical(fields, index, 'rssi'),
+        channel: _getByCanonical(fields, activeIndex, 'channel'),
+        signal: _getByCanonical(fields, activeIndex, 'rssi'),
         security: security,
         capturedAt: capturedAt,
-        altitudeMeters: _getByCanonical(fields, index, 'altitude'),
-        accuracyMeters: _getByCanonical(fields, index, 'accuracy'),
+        altitudeMeters: _getByCanonical(fields, activeIndex, 'altitude'),
+        accuracyMeters: _getByCanonical(fields, activeIndex, 'accuracy'),
         radioType: type.isEmpty ? 'WIFI' : type,
       ),
     );
@@ -618,10 +670,8 @@ bool _looksLikeWigleColumnHeader(String line) {
   return lower.startsWith('mac,') && lower.contains('type');
 }
 
-Map<String, int>? _tryBuildWigleColumnIndex(String line) {
-  if (!_looksLikeWigleColumnHeader(line)) return null;
-
-  final columns = parseCsvLine(line).map((c) => c.trim()).toList();
+Map<String, int> _columnIndexFromHeader(String headerRow) {
+  final columns = parseCsvLine(headerRow).map((c) => c.trim()).toList();
   final indexByCanonical = <String, int>{};
 
   for (var i = 0; i < columns.length; i++) {
@@ -631,10 +681,35 @@ Map<String, int>? _tryBuildWigleColumnIndex(String line) {
     }
   }
 
+  return indexByCanonical;
+}
+
+Map<String, int>? _tryBuildWigleColumnIndex(String line) {
+  if (!_looksLikeWigleColumnHeader(line)) return null;
+
+  final indexByCanonical = _columnIndexFromHeader(line);
   if (!indexByCanonical.containsKey('mac') ||
       !indexByCanonical.containsKey('type')) {
     return null;
   }
 
   return indexByCanonical;
+}
+
+bool _looksLikeWigleDataRow(String line) {
+  if (!_wigleTypeTailRe.hasMatch(line)) return false;
+  final fields = parseCsvLine(line);
+  if (fields.length < 8) return false;
+  return _macRe.hasMatch(fields.first.trim());
+}
+
+/// Pick a default Minino column map from the row width when the CSV header
+/// was already emitted before WebSerial connected.
+Map<String, int> _inferWigleColumnIndex(String line) {
+  final fields = parseCsvLine(line);
+  // 13 fields → RCOIs + Type (no MfgrId). 14+ → full contract header.
+  if (fields.length <= 13) {
+    return _columnIndexFromHeader(_mininoWigleHeaderNoMfgr);
+  }
+  return _columnIndexFromHeader(_defaultMininoWigleHeader);
 }
