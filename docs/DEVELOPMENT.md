@@ -45,11 +45,12 @@ lib/
     widgets/               # RfVillageLogo, SiteCreditFooter
   features/
     serial/                # WebSerialClient (imports condicionales)
-    wardriving/            # LilyGO TSIM7000G / TSIM7600H-G
+    wardriving/            # LilyGO TSIM7000G / TSIM7600H-G / Minino
     marauder/              # Badge Pwnterrey Marauder
     magspoof/              # MagSpoof V5
 test/                      # Tests unitarios de parsers y UI
-assets/branding/           # Logos e iconos
+assets/branding/           # Logos e iconos RF Village
+assets/hardware/           # Pixelarts de dispositivos (hub + AppBar)
 web/                       # index.html, manifest, favicon
 docker/                    # nginx.conf para producción
 scripts/                   # dev.sh, compose-up.sh, check-secrets.sh

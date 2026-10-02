@@ -35,6 +35,7 @@ Los valores de `device_source` están **fijos en código** ([`device_profile.dar
 | | | | | `rf custom firmware lte` (LTE) |
 | `/tsim7600hg` | LilyGO TSIM7600H-G | Sí | WiFi, BLE, LTE (3 CSV separados) | `rf custom firmware wifi` (WiFi/BLE) |
 | | | | | `rf custom firmware lte` (LTE) |
+| `/minino-wardriving` | Minino custom RF Village | Sí | WiFi, BLE (sin LTE) | `minino rf village mx wardriver` |
 | `/pwnterrey-marauder` | Badge Pwnterrey 2026 | Sí | Wardrive WiGLE CSV | `pwnterrey marauder` |
 | `/oficial-marauder` | ESP32 Marauder oficial | Sí | Wardrive WiGLE CSV | `pwnterrey marauder` |
 | `/magspoof-v5` | MagSpoof V5 | No | — | — (solo export CSV local) |
@@ -59,6 +60,19 @@ Legacy (solo si el firmware antiguo sigue activo):
 Nombre de archivo: `lilygo_{wifi|ble|lte}_YYYYMMDD_HHMMSS.csv`
 
 WiFi y BLE comparten el mismo `device_source` (`rf custom firmware wifi`); el backend distingue por estructura del CSV.
+
+### Minino (wardriving RF Village)
+
+Formato **WigleWifi-1.4** (mismo esquema que Marauder, sin CLI):
+
+1. Meta: `WigleWifi-1.4,...,brand=RFVillageMx,model=MININO,...`
+2. Cabecera: `MAC,SSID,AuthMode,FirstSeen,Channel,Frequency,RSSI,CurrentLatitude,...Type`
+3. Filas `Type=WIFI|BLE`
+4. Diagnóstico: `#GPS backend=ATGM|NEO6M status=… fix=… sats=… ts=… lat=… lon=…` (panel GPS); `#GPS switch …`, `#NMEA …` y logs ESP-IDF `W (N) …` solo en terminal
+
+Sin fix GPS el firmware emite lat/lon `0.0000000` (válido en este dialecto).
+
+`device_source`: `minino rf village mx wardriver` (registrar en `SourceDevice.AVAILABLE_CHOICES` del backend).
 
 ### Marauder (wardrive)
 

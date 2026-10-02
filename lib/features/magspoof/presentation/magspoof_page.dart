@@ -87,7 +87,15 @@ class _MagspoofPageState extends ConsumerState<MagspoofPage> {
         appBar: AppBar(
           title: Row(
             children: [
-              const RfVillageLogo(size: RfVillageLogoSize.appBar),
+              if (widget.profile.hasHardwareAsset)
+                Image.asset(
+                  widget.profile.hardwareAsset!,
+                  height: 28,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.none,
+                )
+              else
+                const RfVillageLogo(size: RfVillageLogoSize.appBar),
               const SizedBox(width: 10),
               Flexible(
                 child: Text(

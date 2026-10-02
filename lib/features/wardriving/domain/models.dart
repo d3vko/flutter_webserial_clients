@@ -178,6 +178,30 @@ class IgnoredInvalidCoordinatesEvent extends ParsedSerialEvent {
   final String reason;
 }
 
+class GpsDiagEvent extends ParsedSerialEvent {
+  const GpsDiagEvent({
+    required this.line,
+    required this.source,
+    required this.status,
+    required this.fix,
+    required this.sats,
+    required this.latitude,
+    required this.longitude,
+    this.timestamp = '',
+  });
+
+  final String line;
+  final String source;
+  final String status;
+  final int fix;
+  final int sats;
+  final String latitude;
+  final String longitude;
+  final String timestamp;
+
+  bool get hasFix => fix > 0;
+}
+
 class LogEvent extends ParsedSerialEvent {
   const LogEvent({required this.line});
 
@@ -191,6 +215,7 @@ String lineForEvent(ParsedSerialEvent event) {
     BleEvent(:final line) => line,
     HeaderEvent(:final line) => line,
     IgnoredInvalidCoordinatesEvent(:final line) => line,
+    GpsDiagEvent(:final line) => line,
     LogEvent(:final line) => line,
   };
 }

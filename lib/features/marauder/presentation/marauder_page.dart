@@ -66,7 +66,9 @@ class _MarauderPageState extends ConsumerState<MarauderPage> {
     final isCompact = MediaQuery.sizeOf(context).width < AppBreakpoints.compact;
     final capabilities =
         widget.profile.marauderCapabilities ?? MarauderCapabilities.pwnterrey;
-    final brandingAsset = capabilities.brandingAsset;
+    final brandingAsset = widget.profile.hasHardwareAsset
+        ? widget.profile.hardwareAsset!
+        : capabilities.brandingAsset;
 
     return Theme(
       data: theme.copyWith(

@@ -37,7 +37,7 @@ class WebSerialClient implements SerialClient {
     if (_port != null) return;
 
     _isTearingDown = false;
-    final filters = _filtersForMode(options.mode);
+    final filters = options.usbFilters ?? _filtersForMode(options.mode);
     final jsFilters = usbFiltersToJs(filters);
 
     final selectedPort = await requestWebSerialPort(
@@ -74,8 +74,8 @@ class WebSerialClient implements SerialClient {
 
   List<UsbSerialFilter>? _filtersForMode(SerialConnectMode mode) {
     return switch (mode) {
-      SerialConnectMode.target => [DeviceProfile.targetUsbFilter],
-      SerialConnectMode.usbFallback => DeviceProfile.fallbackUsbFilters,
+      SerialConnectMode.target => [DeviceProfile.tsimCh340UsbFilter],
+      SerialConnectMode.usbFallback => DeviceProfile.defaultFallbackUsbFilters,
       SerialConnectMode.all => const [],
       SerialConnectMode.none => null,
     };

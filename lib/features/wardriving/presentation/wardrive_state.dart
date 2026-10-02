@@ -36,6 +36,12 @@ class WardriveState {
       ScanType.ble: '',
     },
     this.isUploading = false,
+    this.gpsSource = '',
+    this.gpsStatus = '',
+    this.gpsFix = 0,
+    this.gpsSats = 0,
+    this.gpsLatitude = '',
+    this.gpsLongitude = '',
   });
 
   final DeviceProfile profile;
@@ -58,11 +64,20 @@ class WardriveState {
   final Map<ScanType, UploadPhase> uploadStatus;
   final Map<ScanType, String> uploadErrors;
   final bool isUploading;
+  final String gpsSource;
+  final String gpsStatus;
+  final int gpsFix;
+  final int gpsSats;
+  final String gpsLatitude;
+  final String gpsLongitude;
 
   bool get isLoggedIn => authAccess != null && authAccess!.isNotEmpty;
 
   bool get hasAnyRows =>
       lteRows.isNotEmpty || wifiRows.isNotEmpty || bleRows.isNotEmpty;
+
+  bool get hasGpsDiag =>
+      gpsSource.isNotEmpty || gpsStatus.isNotEmpty || gpsLatitude.isNotEmpty;
 
   String get uploadSummary {
     final parts = <String>[];
@@ -73,6 +88,7 @@ class WardriveState {
     };
 
     for (final type in ScanType.values) {
+      if (type == ScanType.lte && !profile.supportsLte) continue;
       final phase = uploadStatus[type] ?? UploadPhase.idle;
       final label = labels[type]!;
       switch (phase) {
@@ -111,6 +127,12 @@ class WardriveState {
     Map<ScanType, UploadPhase>? uploadStatus,
     Map<ScanType, String>? uploadErrors,
     bool? isUploading,
+    String? gpsSource,
+    String? gpsStatus,
+    int? gpsFix,
+    int? gpsSats,
+    String? gpsLatitude,
+    String? gpsLongitude,
   }) {
     return WardriveState(
       profile: profile,
@@ -133,6 +155,12 @@ class WardriveState {
       uploadStatus: uploadStatus ?? this.uploadStatus,
       uploadErrors: uploadErrors ?? this.uploadErrors,
       isUploading: isUploading ?? this.isUploading,
+      gpsSource: gpsSource ?? this.gpsSource,
+      gpsStatus: gpsStatus ?? this.gpsStatus,
+      gpsFix: gpsFix ?? this.gpsFix,
+      gpsSats: gpsSats ?? this.gpsSats,
+      gpsLatitude: gpsLatitude ?? this.gpsLatitude,
+      gpsLongitude: gpsLongitude ?? this.gpsLongitude,
     );
   }
 }

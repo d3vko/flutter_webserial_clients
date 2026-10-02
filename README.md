@@ -7,7 +7,9 @@ Cliente Flutter Web multi-ruta vía **Web Serial API** para hardware RF Village 
 | `/` | Hub | Selector de dispositivos |
 | `/tsim7000g` | LilyGO TSIM7000G | Wardriving (solo lectura) |
 | `/tsim7600hg` | LilyGO TSIM7600H-G 16 MB | Wardriving (filtros USB) |
+| `/minino-wardriving` | Electronic Cats Minino (RF Village) | Wardriving WigleWifi-1.4 WiFi/BLE |
 | `/pwnterrey-marauder` | Badge Pwnterrey 2026 | Marauder CLI (serial bidireccional) |
+| `/oficial-marauder` | ESP32 Marauder oficial | Marauder CLI |
 | `/magspoof-v5` | MagSpoof V5 | Tracks magnéticos ISO 7813 |
 
 ## Documentación
@@ -17,6 +19,7 @@ Cliente Flutter Web multi-ruta vía **Web Serial API** para hardware RF Village 
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | ES | Cómo continuar el desarrollo, estructura, tests, Docker |
 | [docs/SECURITY.md](docs/SECURITY.md) | EN | Política de seguridad, threat model, headers nginx |
 | [docs/DEVICE_SOURCES.md](docs/DEVICE_SOURCES.md) | ES | Clasificación `device_source` por ruta en uploads |
+| [../docs/minino_wardriving_logic.md](../docs/minino_wardriving_logic.md) | ES | Contrato y flujo Minino RF Village |
 | [AGENTS.md](AGENTS.md) | EN | Restricciones para agentes IA |
 
 ## Requisitos

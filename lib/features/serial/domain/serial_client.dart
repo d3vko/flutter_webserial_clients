@@ -4,10 +4,12 @@ class SerialConnectOptions {
   const SerialConnectOptions({
     this.baudRate = 115200,
     this.mode = SerialConnectMode.none,
+    this.usbFilters,
   });
 
   final int baudRate;
   final SerialConnectMode mode;
+  final List<UsbSerialFilter>? usbFilters;
 }
 
 abstract interface class SerialClient {

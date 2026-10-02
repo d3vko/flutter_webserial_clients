@@ -83,6 +83,10 @@ class DeviceProfile {
     required this.supportsAdvancedSerial,
     required this.defaultBaudRate,
     this.marauderCapabilities,
+    this.hardwareAsset,
+    this.supportsLte = true,
+    this.targetUsbFilter,
+    this.fallbackUsbFilters = defaultFallbackUsbFilters,
   });
 
   final String id;
@@ -97,12 +101,36 @@ class DeviceProfile {
   final bool supportsAdvancedSerial;
   final int defaultBaudRate;
   final MarauderCapabilities? marauderCapabilities;
+  final String? hardwareAsset;
+  final bool supportsLte;
+  final UsbSerialFilter? targetUsbFilter;
+  final List<UsbSerialFilter> fallbackUsbFilters;
 
   /// Upload `device_source` for TSIM WiFi/BLE CSV (shared by TSIM7000G and TSIM7600H-G).
   static const rfCustomFirmwareWifi = 'rf custom firmware wifi';
 
   /// Upload `device_source` for TSIM LTE CSV (shared by TSIM7000G and TSIM7600H-G).
   static const rfCustomFirmwareLte = 'rf custom firmware lte';
+
+  /// Upload `device_source` for Minino custom RF Village WiFi/BLE Wigle CSV.
+  static const mininoWardrivingWifiBle = 'minino rf village mx wardriver';
+
+  static const tsimCh340UsbFilter = UsbSerialFilter(
+    usbVendorId: 0x1a86,
+    usbProductId: 0x55d4,
+  );
+
+  static const espressifUsbJtagFilter = UsbSerialFilter(
+    usbVendorId: 0x303a,
+    usbProductId: 0x1001,
+  );
+
+  static const defaultFallbackUsbFilters = [
+    UsbSerialFilter(usbVendorId: 0x10c4),
+    UsbSerialFilter(usbVendorId: 0x1a86),
+    UsbSerialFilter(usbVendorId: 0x0403),
+    UsbSerialFilter(usbVendorId: 0x303a),
+  ];
 
   static const tsim7000g = DeviceProfile(
     id: 'tsim7000g',
@@ -115,6 +143,7 @@ class DeviceProfile {
     deviceSourceLte: rfCustomFirmwareLte,
     supportsAdvancedSerial: false,
     defaultBaudRate: 115200,
+    hardwareAsset: 'assets/hardware/rf_custom_firmware_wifi_pixelart.png',
   );
 
   static const tsim7600hg = DeviceProfile(
@@ -128,6 +157,24 @@ class DeviceProfile {
     deviceSourceLte: rfCustomFirmwareLte,
     supportsAdvancedSerial: true,
     defaultBaudRate: 115200,
+    hardwareAsset: 'assets/hardware/rf_custom_firmware_lte_pixelart.png',
+    targetUsbFilter: tsimCh340UsbFilter,
+  );
+
+  static const mininoWardriving = DeviceProfile(
+    id: 'minino-wardriving',
+    routePath: '/minino-wardriving',
+    title: 'Minino Wardriving',
+    subtitle: 'Electronic Cats Minino custom firmware — RF Village MX',
+    themeStorageKey: 'minino-wardriving-color-mode',
+    appKind: AppKind.wardriving,
+    deviceSourceWifiBle: mininoWardrivingWifiBle,
+    deviceSourceLte: '',
+    supportsAdvancedSerial: true,
+    defaultBaudRate: 115200,
+    hardwareAsset: 'assets/hardware/minino_rf_village_pixelart.png',
+    supportsLte: false,
+    targetUsbFilter: espressifUsbJtagFilter,
   );
 
   static const pwnterreyMarauder = DeviceProfile(
@@ -143,6 +190,8 @@ class DeviceProfile {
     supportsAdvancedSerial: false,
     defaultBaudRate: 115200,
     marauderCapabilities: MarauderCapabilities.pwnterrey,
+    hardwareAsset: 'assets/hardware/pwnterrey_marauder_pixelart.png',
+    supportsLte: false,
   );
 
   static const oficialMarauder = DeviceProfile(
@@ -158,6 +207,8 @@ class DeviceProfile {
     supportsAdvancedSerial: false,
     defaultBaudRate: 115200,
     marauderCapabilities: MarauderCapabilities.oficial,
+    hardwareAsset: 'assets/hardware/marauder_esp32_pixelart.png',
+    supportsLte: false,
   );
 
   static const magspoofV5 = DeviceProfile(
@@ -171,11 +222,14 @@ class DeviceProfile {
     deviceSourceLte: '',
     supportsAdvancedSerial: false,
     defaultBaudRate: 9600,
+    hardwareAsset: 'assets/hardware/magspoof_v5_pixelart.png',
+    supportsLte: false,
   );
 
   static const all = [
     tsim7000g,
     tsim7600hg,
+    mininoWardriving,
     pwnterreyMarauder,
     oficialMarauder,
     magspoofV5,
@@ -183,6 +237,17 @@ class DeviceProfile {
 
   static List<DeviceProfile> forKind(AppKind kind) =>
       all.where((profile) => profile.appKind == kind).toList();
+
+  static List<DeviceProfile> get lilygoWardrivingProfiles => all
+      .where(
+        (profile) =>
+            profile.appKind == AppKind.wardriving &&
+            profile.id != mininoWardriving.id,
+      )
+      .toList();
+
+  static List<DeviceProfile> get mininoWardrivingProfiles =>
+      all.where((profile) => profile.id == mininoWardriving.id).toList();
 
   static DeviceProfile? fromPath(String path) {
     for (final profile in all) {
@@ -194,16 +259,8 @@ class DeviceProfile {
   bool get hasMarauderDeviceSource =>
       deviceSource != null && deviceSource!.isNotEmpty;
 
-  static const targetUsbFilter = UsbSerialFilter(
-    usbVendorId: 0x1a86,
-    usbProductId: 0x55d4,
-  );
-
-  static const fallbackUsbFilters = [
-    UsbSerialFilter(usbVendorId: 0x10c4),
-    UsbSerialFilter(usbVendorId: 0x1a86),
-    UsbSerialFilter(usbVendorId: 0x0403),
-  ];
+  bool get hasHardwareAsset =>
+      hardwareAsset != null && hardwareAsset!.isNotEmpty;
 
   List<UsbSerialFilter>? filtersForMode(SerialConnectMode mode) {
     if (!supportsAdvancedSerial || mode == SerialConnectMode.none) {
@@ -211,7 +268,9 @@ class DeviceProfile {
     }
 
     return switch (mode) {
-      SerialConnectMode.target => [targetUsbFilter],
+      SerialConnectMode.target => [
+        targetUsbFilter ?? tsimCh340UsbFilter,
+      ],
       SerialConnectMode.usbFallback => fallbackUsbFilters,
       SerialConnectMode.all => const [],
       SerialConnectMode.none => null,
@@ -220,7 +279,9 @@ class DeviceProfile {
 
   String statusForRequestMode(SerialConnectMode mode) {
     return switch (mode) {
-      SerialConnectMode.target => 'Select TSIM 7600H-G serial port...',
+      SerialConnectMode.target => id == mininoWardriving.id
+          ? 'Select Minino (Espressif USB-JTAG) serial port...'
+          : 'Select TSIM 7600H-G serial port...',
       SerialConnectMode.usbFallback => 'Select other USB serial port...',
       SerialConnectMode.all => 'Select any serial port...',
       SerialConnectMode.none => 'Select serial port...',

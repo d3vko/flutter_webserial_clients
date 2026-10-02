@@ -249,4 +249,109 @@ void main() {
       expect(unified.record.altitudeMeters, '2240.00');
     });
   });
+
+  group('Minino WigleWifi-1.4', () {
+    const wigleMeta =
+        'WigleWifi-1.4,appRelease=1.0.0,model=MININO,release=1.0.0,'
+        'device=MININO,display=SH1106 OLED,board=ESP32C6,brand=RFVillageMx,'
+        'star=Sol,body=3,subBody=0';
+    const wigleColumns =
+        'MAC,SSID,AuthMode,FirstSeen,Channel,Frequency,RSSI,'
+        'CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,'
+        'RCOIs,MfgrId,Type';
+
+    test('ignores hash diag lines and parses #GPS backend status', () {
+      expect(
+        parseSerialLine(
+          '#custom_minino_wardriving — @d3v.k0 / RF Village',
+          capturedAt: capturedAt,
+        ),
+        isA<LogEvent>(),
+      );
+      expect(
+        parseSerialLine(
+          'W (6271) wardrive: Wardrive WiFi+BLE ready (SD=no)',
+          capturedAt: capturedAt,
+        ),
+        isA<LogEvent>(),
+      );
+      expect(
+        parseSerialLine(
+          '#GPS switch NEO6M baud=9600 J2 RX=17 TX=16 (ATGM power OFF)',
+          capturedAt: capturedAt,
+        ),
+        isA<LogEvent>(),
+      );
+
+      final gps = parseSerialLine(
+        '#GPS backend=ATGM status=waiting fix=0 sats=0 bytes=128 nmea=4 '
+        'ts=2000-01-01 00:00:00 lat=0.0000000 lon=0.0000000',
+        capturedAt: capturedAt,
+      );
+      expect(gps, isA<GpsDiagEvent>());
+      final diag = gps as GpsDiagEvent;
+      expect(diag.source, 'ATGM');
+      expect(diag.status, 'waiting');
+      expect(diag.fix, 0);
+      expect(diag.sats, 0);
+      expect(diag.hasFix, isFalse);
+      expect(diag.timestamp, '2000-01-01 00:00:00');
+      expect(diag.latitude, '0.0000000');
+      expect(diag.longitude, '0.0000000');
+    });
+
+    test('parses #GPS backend ready with synthetic fix coords', () {
+      final gps = parseSerialLine(
+        '#GPS backend=NEO6M status=ready fix=1 sats=9 bytes=256 nmea=4 '
+        'ts=2026-10-02 03:21:16 lat=1.2345678 lon=-9.8765432',
+        capturedAt: capturedAt,
+      );
+      expect(gps, isA<GpsDiagEvent>());
+      final diag = gps as GpsDiagEvent;
+      expect(diag.source, 'NEO6M');
+      expect(diag.status, 'ready');
+      expect(diag.fix, 1);
+      expect(diag.sats, 9);
+      expect(diag.hasFix, isTrue);
+      expect(diag.latitude, '1.2345678');
+      expect(diag.longitude, '-9.8765432');
+    });
+
+    test('parses Minino Wigle WIFI and BLE rows including zero GPS', () {
+      final parser = SerialStreamParser();
+      expect(parser.parseLine(wigleMeta, capturedAt), isA<LogEvent>());
+      expect(
+        parser.parseLine(wigleColumns, capturedAt),
+        isA<HeaderEvent>().having((e) => e.scanType, 'scanType', ScanType.wifi),
+      );
+
+      const wifiLine =
+          'aa:bb:cc:dd:ee:ff,DemoAP,WPA2_PSK,2026-10-02 01:35:35,6,2437,-61,'
+          '1.2345678,-9.8765432,100.00,5.00,,,WIFI';
+      final wifiEvent = parser.parseLine(wifiLine, capturedAt);
+      expect(wifiEvent, isA<WifiEvent>());
+      final wifi = wifiEvent as WifiEvent;
+      expect(wifi.record.bssid, 'aa:bb:cc:dd:ee:ff');
+      expect(wifi.record.ssid, 'DemoAP');
+      expect(wifi.record.security, 'WPA2_PSK');
+      expect(wifi.record.channel, '6');
+      expect(wifi.record.signal, '-61');
+      expect(wifi.record.latitude, '1.2345678');
+      expect(wifi.record.longitude, '-9.8765432');
+      expect(wifi.record.radioType, 'WIFI');
+
+      const bleLine =
+          'AA:BB:CC:DD:EE:FF,,BLE,2026-10-02 01:35:36,0,0,-80,'
+          '0.0000000,0.0000000,0.00,0.00,,,BLE';
+      final bleEvent = parser.parseLine(bleLine, capturedAt);
+      expect(bleEvent, isA<BleEvent>());
+      final ble = bleEvent as BleEvent;
+      expect(ble.record.address, 'AA:BB:CC:DD:EE:FF');
+      expect(ble.record.security, 'BLE');
+      expect(ble.record.rssi, '-80');
+      expect(ble.record.latitude, '0.0000000');
+      expect(ble.record.longitude, '0.0000000');
+      expect(ble.record.radioType, 'BLE');
+    });
+  });
 }

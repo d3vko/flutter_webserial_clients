@@ -20,6 +20,11 @@ final appRouter = GoRouter(
           const WardrivePage(profile: DeviceProfile.tsim7600hg),
     ),
     GoRoute(
+      path: DeviceProfile.mininoWardriving.routePath,
+      builder: (context, state) =>
+          const WardrivePage(profile: DeviceProfile.mininoWardriving),
+    ),
+    GoRoute(
       path: DeviceProfile.pwnterreyMarauder.routePath,
       builder: (context, state) =>
           const MarauderPage(profile: DeviceProfile.pwnterreyMarauder),

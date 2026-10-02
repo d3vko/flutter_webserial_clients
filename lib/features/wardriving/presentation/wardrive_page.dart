@@ -70,8 +70,18 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
         appBar: AppBar(
           title: Row(
             children: [
-              const RfVillageLogo(size: RfVillageLogoSize.appBar),
-              const SizedBox(width: 10),
+              if (widget.profile.hasHardwareAsset) ...[
+                Image.asset(
+                  widget.profile.hardwareAsset!,
+                  height: 28,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.none,
+                ),
+                const SizedBox(width: 10),
+              ] else ...[
+                const RfVillageLogo(size: RfVillageLogoSize.appBar),
+                const SizedBox(width: 10),
+              ],
               Flexible(
                 child: Text(
                   widget.profile.title,
@@ -165,6 +175,10 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _SerialPanel(profile: widget.profile, state: state),
+              if (state.hasGpsDiag) ...[
+                const SizedBox(height: 16),
+                _GpsStatusPanel(state: state),
+              ],
               const SizedBox(height: 16),
               _TerminalPanel(
                 state: state,
@@ -172,7 +186,9 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
               ),
               const SizedBox(height: 16),
               CaptureMapSection(
-                lteRows: state.lteRows,
+                lteRows: widget.profile.supportsLte
+                    ? state.lteRows
+                    : const [],
                 wifiRows: state.wifiRows,
                 bleRows: state.bleRows,
               ),
@@ -184,14 +200,15 @@ class _WardrivePageState extends ConsumerState<WardrivePage> {
                     ? () => _handleUploadAll(state)
                     : null,
               ),
-              ScanDataSection.lte(
-                subtitle: '${state.lteRows.length} records',
-                filename: makeCsvFilename(ScanType.lte),
-                rows: state.lteRows,
-                onDownload: () => _controller.downloadCsv(ScanType.lte),
-                onClear: () => _controller.clearRows(ScanType.lte),
-                onUpload: () => _handleUpload(ScanType.lte, state),
-              ),
+              if (widget.profile.supportsLte)
+                ScanDataSection.lte(
+                  subtitle: '${state.lteRows.length} records',
+                  filename: makeCsvFilename(ScanType.lte),
+                  rows: state.lteRows,
+                  onDownload: () => _controller.downloadCsv(ScanType.lte),
+                  onClear: () => _controller.clearRows(ScanType.lte),
+                  onUpload: () => _handleUpload(ScanType.lte, state),
+                ),
               ScanDataSection.wifi(
                 subtitle: '${state.wifiRows.length} access points',
                 filename: makeCsvFilename(ScanType.wifi),
@@ -249,9 +266,10 @@ class _BulkActionsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final summary =
-        'LTE: ${state.lteRows.length} · WiFi: ${state.wifiRows.length} · '
-        'BLE: ${state.bleRows.length}';
+    final summary = state.profile.supportsLte
+        ? 'LTE: ${state.lteRows.length} · WiFi: ${state.wifiRows.length} · '
+              'BLE: ${state.bleRows.length}'
+        : 'WiFi: ${state.wifiRows.length} · BLE: ${state.bleRows.length}';
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -304,6 +322,57 @@ class _BulkActionsBar extends StatelessWidget {
                 if (state.uploadSummary.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(state.uploadSummary),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GpsStatusPanel extends StatelessWidget {
+  const _GpsStatusPanel({required this.state});
+
+  final WardriveState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final fixLabel = state.gpsFix > 0 ? 'fix' : 'no fix';
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 3,
+            decoration: const BoxDecoration(
+              gradient: RfVillageGradient.cardAccent,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'GPS status',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'backend=${state.gpsSource.isEmpty ? '-' : state.gpsSource} · '
+                  'status=${state.gpsStatus.isEmpty ? '-' : state.gpsStatus} · '
+                  '$fixLabel · sats=${state.gpsSats}',
+                ),
+                if (state.gpsLatitude.isNotEmpty ||
+                    state.gpsLongitude.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'lat=${state.gpsLatitude} lon=${state.gpsLongitude}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ],
             ),
@@ -390,7 +459,11 @@ class _SerialPanel extends ConsumerWidget {
                             : () => controller.connectSerial(
                                 mode: SerialConnectMode.target,
                               ),
-                        child: const Text('Connect TSIM 7600H-G'),
+                        child: Text(
+                          profile.id == DeviceProfile.mininoWardriving.id
+                              ? 'Connect Minino'
+                              : 'Connect TSIM 7600H-G',
+                        ),
                       ),
                       OutlinedButton(
                         onPressed: state.isConnected || state.isConnecting

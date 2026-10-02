@@ -71,17 +71,25 @@ class DeviceSelectorPage extends StatelessWidget {
                               ),
                         ),
                         const SizedBox(height: 32),
-                        _SectionHeader(
+                        const _SectionHeader(
                           title: 'LilyGO TSIM WiFi/BLE/LTE Wardriving',
                         ),
-                        for (final profile in DeviceProfile.forKind(
-                          AppKind.wardriving,
-                        )) ...[
+                        for (final profile
+                            in DeviceProfile.lilygoWardrivingProfiles) ...[
                           _DeviceCard(profile: profile),
                           const SizedBox(height: 16),
                         ],
                         const SizedBox(height: 16),
-                        _SectionHeader(title: 'Marauder ESP32'),
+                        const _SectionHeader(
+                          title: 'Electronic Cats / Minino',
+                        ),
+                        for (final profile
+                            in DeviceProfile.mininoWardrivingProfiles) ...[
+                          _DeviceCard(profile: profile),
+                          const SizedBox(height: 16),
+                        ],
+                        const SizedBox(height: 16),
+                        const _SectionHeader(title: 'Marauder ESP32'),
                         for (final profile in DeviceProfile.forKind(
                           AppKind.marauder,
                         )) ...[
@@ -89,7 +97,7 @@ class DeviceSelectorPage extends StatelessWidget {
                           const SizedBox(height: 16),
                         ],
                         const SizedBox(height: 16),
-                        _SectionHeader(title: 'MagSpoof V5'),
+                        const _SectionHeader(title: 'MagSpoof V5'),
                         for (final profile in DeviceProfile.forKind(
                           AppKind.magspoof,
                         )) ...[
@@ -153,6 +161,17 @@ class _DeviceCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (profile.hasHardwareAsset) ...[
+                  Center(
+                    child: Image.asset(
+                      profile.hardwareAsset!,
+                      height: 120,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.none,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Text(
                   profile.title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(

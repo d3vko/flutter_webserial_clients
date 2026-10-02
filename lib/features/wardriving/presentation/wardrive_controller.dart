@@ -130,7 +130,11 @@ class WardriveController extends StateNotifier<WardriveState> {
           : SerialConnectMode.none;
 
       await _serial.connect(
-        SerialConnectOptions(baudRate: state.baudRate, mode: connectMode),
+        SerialConnectOptions(
+          baudRate: state.baudRate,
+          mode: connectMode,
+          usbFilters: state.profile.filtersForMode(connectMode),
+        ),
       );
 
       final label = _serial.portLabel ?? '';
@@ -205,17 +209,39 @@ class WardriveController extends StateNotifier<WardriveState> {
     var wifiRows = List<WifiRecord>.from(state.wifiRows);
     var bleRows = List<BleRecord>.from(state.bleRows);
     var ignoredCount = state.ignoredCount;
+    var gpsSource = state.gpsSource;
+    var gpsStatus = state.gpsStatus;
+    var gpsFix = state.gpsFix;
+    var gpsSats = state.gpsSats;
+    var gpsLatitude = state.gpsLatitude;
+    var gpsLongitude = state.gpsLongitude;
 
     for (final event in events) {
       switch (event) {
         case LteEvent(:final record):
-          lteRows.insert(0, record);
+          if (state.profile.supportsLte) {
+            lteRows.insert(0, record);
+          }
         case WifiEvent(:final record):
           wifiRows.insert(0, record);
         case BleEvent(:final record):
           bleRows.insert(0, record);
         case IgnoredInvalidCoordinatesEvent():
           ignoredCount++;
+        case GpsDiagEvent(
+          :final source,
+          :final status,
+          :final fix,
+          :final sats,
+          :final latitude,
+          :final longitude,
+        ):
+          gpsSource = source;
+          gpsStatus = status;
+          gpsFix = fix;
+          gpsSats = sats;
+          gpsLatitude = latitude;
+          gpsLongitude = longitude;
         case HeaderEvent():
         case LogEvent():
           break;
@@ -228,6 +254,12 @@ class WardriveController extends StateNotifier<WardriveState> {
       wifiRows: wifiRows,
       bleRows: bleRows,
       ignoredCount: ignoredCount,
+      gpsSource: gpsSource,
+      gpsStatus: gpsStatus,
+      gpsFix: gpsFix,
+      gpsSats: gpsSats,
+      gpsLatitude: gpsLatitude,
+      gpsLongitude: gpsLongitude,
     );
   }
 
@@ -249,28 +281,58 @@ class WardriveController extends StateNotifier<WardriveState> {
   }
 
   void loadSample() {
+    if (!state.profile.supportsLte) {
+      const sample = [
+        '#custom_minino_wardriving — @d3v.k0 / RF Village',
+        'WigleWifi-1.4,appRelease=1.0.0,model=MININO,release=1.0.0,'
+            'device=MININO,display=SH1106 OLED,board=ESP32C6,brand=RFVillageMx,'
+            'star=Sol,body=3,subBody=0',
+        'MAC,SSID,AuthMode,FirstSeen,Channel,Frequency,RSSI,'
+            'CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,'
+            'RCOIs,MfgrId,Type',
+        'W (6271) wardrive: Wardrive WiFi+BLE ready (SD=no)',
+        'aa:bb:cc:dd:ee:ff,DemoAP,WPA2_PSK,2000-01-01 00:00:00,6,2437,-61,'
+            '0.0000000,0.0000000,0.00,0.00,,,WIFI',
+        'AA:BB:CC:DD:EE:FF,,BLE,2000-01-01 00:00:00,0,0,-80,'
+            '0.0000000,0.0000000,0.00,0.00,,,BLE',
+        '#GPS backend=ATGM status=waiting fix=0 sats=0 bytes=128 nmea=4 '
+            'ts=2000-01-01 00:00:00 lat=0.0000000 lon=0.0000000',
+        '#GPS switch NEO6M baud=9600 J2 RX=17 TX=16 (ATGM power OFF)',
+        '#GPS backend=NEO6M status=ready fix=1 sats=9 bytes=256 nmea=4 '
+            'ts=2026-10-02 03:21:16 lat=1.2345678 lon=-9.8765432',
+        'aa:bb:cc:dd:ee:01,DemoAP_Fix,WPA2_PSK,2026-10-02 03:21:16,6,2437,-61,'
+            '1.2345678,-9.8765432,100.00,5.00,,,WIFI',
+      ];
+      final parser = SerialStreamParser();
+      final capturedAt = DateTime.now().toUtc().toIso8601String();
+      _consumeEvents(
+        sample.map((line) => parser.parseLine(line, capturedAt)).toList(),
+      );
+      return;
+    }
+
     const sample = [
       '[modem] AT sync OK',
       '[gps] GPS power enabled',
       'Source,Timestamp,Tecnología,Estado,MCC,MNC,LAC,CellID,Banda,RSSI,RSRP,RSRQ,SINR,Operador,Longitud,Latitud',
-      'lte,2026-04-10T23:51:58.000Z,LTE,0,334,020,1201,390112,3,-73,-101,-10,9,Telcel,-99.1332090,19.4326080',
+      'lte,2026-04-10T23:51:58.000Z,LTE,0,334,020,1201,390112,3,-73,-101,-10,9,Telcel,1.2345678,-9.8765432',
       'Source,Timestamp,Tecnología,TipoCelda,Estado,MCC,MNC,LAC,CellID,eNodeB,Sector,PCI,Banda,EARFCN,FreqDL_MHz,FreqUL_MHz,RSSI,RSRP,RSRQ,SINR,Operador,Longitud,Latitud',
-      'lte,2026-04-10T23:52:01.000Z,LTE,FDD-LTE,0,334,020,1201,390112,6095,2,123,3,1300,2115.0,1920.0,-73,-101,-10,9,Telcel,-99.1332090,19.4326080',
-      'lte,2026-04-10T23:52:02.000Z,LTE,FDD-LTE,0,334,020,1202,390113,6096,3,124,7,1350,2120.0,1930.0,-80,-105,-12,7,Movistar,-99.1400000,19.4400000',
-      'lte,2026-04-10T23:52:03.000Z,LTE,FDD-LTE,0,334,090,1203,390114,6097,1,125,20,6150,3500.0,3510.0,-68,-95,-8,12,AT&T,-99.1450000,19.4450000',
+      'lte,2026-04-10T23:52:01.000Z,LTE,FDD-LTE,0,334,020,1201,390112,6095,2,123,3,1300,2115.0,1920.0,-73,-101,-10,9,Telcel,1.2345678,-9.8765432',
+      'lte,2026-04-10T23:52:02.000Z,LTE,FDD-LTE,0,334,020,1202,390113,6096,3,124,7,1350,2120.0,1930.0,-80,-105,-12,7,Movistar,1.2345600,-9.8765400',
+      'lte,2026-04-10T23:52:03.000Z,LTE,FDD-LTE,0,334,090,1203,390114,6097,1,125,20,6150,3500.0,3510.0,-68,-95,-8,12,AT&T,1.2345500,-9.8765300',
       'Source,Timestamp,Lat,Long,SSID,BSSID,Canal,Señal,Seguridad',
-      'wifi,2026-04-10T23:52:04.000Z,19.4326080,-99.1332090,SampleNet,AA:BB:CC:DD:EE:FF,6,-65,WPA2_PSK',
-      'wifi,2026-04-10T23:52:05.000Z,19.4326080,-99.1332090,,A2:31:DB:A0:CC:C6,7,-73,WPA2_PSK',
-      'wifi,2026-04-10T23:52:06.000Z,19.4350000,-99.1300000,CafeCentro,34:6B:46:EC:BA:0B,11,-53,WPA2_PSK',
-      'wifi,2026-04-10T23:52:07.000Z,19.4365000,-99.1285000,RF_Village_Guest_Network_5GHz,DE:AD:BE:EF:00:01,36,-48,WPA3_SAE',
+      'wifi,2026-04-10T23:52:04.000Z,1.2345678,-9.8765432,SampleNet,AA:BB:CC:DD:EE:FF,6,-65,WPA2_PSK',
+      'wifi,2026-04-10T23:52:05.000Z,1.2345678,-9.8765432,,A2:31:DB:A0:CC:C6,7,-73,WPA2_PSK',
+      'wifi,2026-04-10T23:52:06.000Z,1.2345600,-9.8765400,CafeCentro,34:6B:46:EC:BA:0B,11,-53,WPA2_PSK',
+      'wifi,2026-04-10T23:52:07.000Z,1.2345500,-9.8765300,RF_Village_Guest_Network_5GHz,DE:AD:BE:EF:00:01,36,-48,WPA3_SAE',
       'Source,Timestamp,Lat,Long,Dirección,RSSI,Nombre',
-      'ble,2026-04-10T23:52:08.000Z,19.4326080,-99.1332090,80:E1:26:76:33:64,-65,d3vnull0',
-      'ble,2026-04-10T23:52:09.000Z,19.4326080,-99.1332090,AA:BB:CC:DD:EE:01,-72,',
-      'ble,2026-04-10T23:52:10.000Z,19.4355000,-99.1280000,11:22:33:44:55:66,-58,BeaconTag',
-      'ble,2026-04-10T23:52:11.000Z,19.4370000,-99.1270000,FE:DC:BA:98:76:54,-61,RFVillageBeacon',
+      'ble,2026-04-10T23:52:08.000Z,1.2345678,-9.8765432,80:E1:26:76:33:64,-65,d3vnull0',
+      'ble,2026-04-10T23:52:09.000Z,1.2345678,-9.8765432,AA:BB:CC:DD:EE:01,-72,',
+      'ble,2026-04-10T23:52:10.000Z,1.2345600,-9.8765400,11:22:33:44:55:66,-58,BeaconTag',
+      'ble,2026-04-10T23:52:11.000Z,1.2345500,-9.8765300,FE:DC:BA:98:76:54,-61,RFVillageBeacon',
       radioUnifiedHeader,
-      'wifi,AA:BB:CC:DD:EE:FF,RedCasa,WPA2_PSK,2026-07-02 12:00:00,6,-65,19.4326000,-99.1332000,2240.00,5.00,WIFI',
-      'ble,11:22:33:44:55:66,,BLE,2026-07-02 12:00:00,0,-72,19.4326000,-99.1332000,2240.00,5.00,BLE',
+      'wifi,AA:BB:CC:DD:EE:FF,RedCasa,WPA2_PSK,2026-07-02 12:00:00,6,-65,1.2345678,-9.8765432,100.00,5.00,WIFI',
+      'ble,11:22:33:44:55:66,,BLE,2026-07-02 12:00:00,0,-72,1.2345678,-9.8765432,100.00,5.00,BLE',
       '[ble] logged 4 devices',
     ];
 
@@ -363,11 +425,13 @@ class WardriveController extends StateNotifier<WardriveState> {
 
   Future<void> _doUploadAll() async {
     for (final type in ScanType.values) {
+      if (type == ScanType.lte && !state.profile.supportsLte) continue;
       await uploadType(type);
     }
   }
 
   Future<void> uploadType(ScanType type) async {
+    if (type == ScanType.lte && !state.profile.supportsLte) return;
     final rows = switch (type) {
       ScanType.lte => state.lteRows,
       ScanType.wifi => state.wifiRows,
